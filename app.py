@@ -12,3 +12,6 @@ if uploaded_files:
     
     if st.button("OK"):
         st.write("Files have been processed successfully!")
+
+
+# streamlit run app.py
