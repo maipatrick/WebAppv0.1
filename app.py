@@ -1,14 +1,29 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import cv2
 import tempfile
 import mediapipe as mp
+import numpy as np
+import pandas as pd
+from designidea import plot_hand_drawn_style
+import matplotlib.pyplot as plt
+import time
 
 # Display the logo
 st.image("logo.png", width=200)
 
-st.title("Premium File Processing App")
+st.title("Sync AI")
 
 st.write("Upload your files for analysis!")
+
+st.sidebar.title("Sidebar")
+if st.sidebar.button("About"):
+    js = """
+    <script type="text/javascript">
+        window.open('https://example.com', '_blank').focus();
+    </script>
+    """
+    components.html(js, height=0)
 
 # File uploader for Excel files
 uploaded_excel = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
@@ -18,6 +33,33 @@ uploaded_video = st.file_uploader("Choose a video file", type=["mp4", "mov", "av
 
 if uploaded_excel:
     st.write(f"Excel file {uploaded_excel.name} uploaded successfully!")
+    
+    # Read the Excel file as a DataFrame
+    df = pd.read_excel(uploaded_excel, header=0)
+    
+    # Display the DataFrame
+    st.write(df)
+    
+    # Simulate data processing with a progress bar
+    progress_bar = st.progress(0)
+    for i in range(100):
+        time.sleep(0.0005)  # Simulate processing time
+        progress_bar.progress(i + 1)
+    
+    # # Access the data in the "Speed [m/s]" column
+    # if "Speed [m/s]" in df.columns:
+    #     y = df["Speed [m/s]"]
+        
+    #     # Generate the x array with the same length as y
+    #     x = np.arange(len(y))
+        
+    #     # Create the plot with XKCD style
+    #     fig = plot_hand_drawn_style(x, y)
+        
+    #     # Display the plot
+    #     st.pyplot(fig)
+    # else:
+    #     st.write("Column 'Speed [m/s]' not found in the uploaded Excel file.")
 
 if uploaded_video:
     st.write(f"Video file {uploaded_video.name} uploaded successfully!")
