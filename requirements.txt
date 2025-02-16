@@ -39,10 +39,10 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 matplotlib==3.10.0
 mdurl==0.1.2
-mediapipe==0.10.21
+mediapipe
 ml_dtypes==0.5.1
 narwhals==1.26.0
-numpy==2.2.3
+numpy<2
 open3d==0.18.0
 opencv-contrib-python==4.11.0.86
 opencv-python==4.11.0.86
