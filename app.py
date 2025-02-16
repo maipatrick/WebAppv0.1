@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import time
 
 # Display the logo
-st.image("logo.png", width=200)
+st.image("logo.PNG", width=200)
 
 st.title("Sync AI")
 
