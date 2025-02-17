@@ -1,135 +1,100 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import cv2
-import tempfile
-import mediapipe as mp
-import numpy as np
 import pandas as pd
-from designidea import plot_hand_drawn_style
-import matplotlib.pyplot as plt
+import tempfile
+import cv2
 import time
+import processing  # Our custom module for backend processing
 
-# Display the logo
+# Display the logo and set up the main title
 st.image("logo.PNG", width=200)
-
 st.title("Sync AI")
-st.header("How to use")
 
-st.write("Nice animation here how it works?")
+# # Sidebar with an About button
+# st.sidebar.title("Sidebar")
+# if st.sidebar.button("About"):
+#     js = """
+#     <script type="text/javascript">
+#         window.open('https://example.com', '_blank').focus();
+#     </script>
+#     """
+#     components.html(js, height=0)
 
-st.sidebar.title("Sidebar")
-if st.sidebar.button("About"):
-    js = """
-    <script type="text/javascript">
-        window.open('https://example.com', '_blank').focus();
-    </script>
-    """
-    components.html(js, height=0)
+# Create three tabs for the UI
+tab1, tab2, tab3 = st.tabs(["Sync AI", "Results", "How to use"])
 
-# File uploader for Excel files
-uploaded_excel = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
-
-# File uploader for video files
-uploaded_video = st.file_uploader("Choose a video file", type=["mp4", "mov", "avi"])
-
-
-
-# st.write(f"You selected: {selected_option}")
-# st.write(f"You selected: {selected_option}")
-
-if uploaded_excel:
-    st.write(f"Excel file {uploaded_excel.name} uploaded successfully!")
+with tab1:
+    tab1.write('Check out "How to use" tab for more information.')
+    st.header("Please upload your files")
     
-    # Read the Excel file as a DataFrame
-    df = pd.read_excel(uploaded_excel, header=0)
-    
-    # Display the DataFrame
-    #st.write(df)
-    
-    # Simulate data processing with a progress bar
-    progress_bar = st.progress(0)
-    for i in range(100):
-        time.sleep(0.0005)  # Simulate processing time
-        progress_bar.progress(i + 1)
-    
-    # # Access the data in the "Speed [m/s]" column
-    # if "Speed [m/s]" in df.columns:
-    #     y = df["Speed [m/s]"]
+    # Excel file uploader and processing
+    uploaded_excel = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
+    if uploaded_excel:
+        st.write(f"Excel file {uploaded_excel.name} uploaded successfully!")
+        excel_progress = st.progress(0)
         
-    #     # Generate the x array with the same length as y
-    #     x = np.arange(len(y))
+        # Callback function to update Excel processing progress
+        def excel_progress_callback(progress):
+            excel_progress.progress(progress)
         
-    #     # Create the plot with XKCD style
-    #     fig = plot_hand_drawn_style(x, y)
+        # Process the Excel file and get back the DataFrame and optional figure
+        df, fig = processing.process_excel(uploaded_excel, progress_callback=excel_progress_callback)
         
-    #     # Display the plot
-    #     st.pyplot(fig)
-    # else:
-    #     st.write("Column 'Speed [m/s]' not found in the uploaded Excel file.")
+        if fig:
+            st.pyplot(fig)
+    
+    # Video file uploader and processing
+    uploaded_video = st.file_uploader("Choose a video file", type=["mp4", "mov", "avi"])
+    if uploaded_video:
+        st.write(f"Video file {uploaded_video.name} uploaded successfully!")
+        st.video(uploaded_video)
+        
+        # Show additional inputs only if both files are uploaded
+        if uploaded_excel and uploaded_video:
+            bodyheight = st.number_input("Body height (m)", min_value=0.0, max_value=2.5, value=1.87, format="%.2f")
+            bodymass = st.number_input("Body mass (kg)", min_value=20.0, max_value=200.0, value=80.0, format="%.2f")
+            
+            # Dropdown selections for system and movement type
+            options_Systems = ["MRD", "TBT"]
+            selected_System = st.selectbox("System", options_Systems)
+            if selected_System == "MRD":
+                options = ["5O5", "10O5", "TBT"]
+            else:
+                options = ["TBT", "TBT2", "TBT"]
+            selected_Movement = st.selectbox("Type of movement", options)
+            
+            # When the OK button is pressed, process the video
+            if st.button("OK"):
+                st.write("Processing video for pose estimation...")
+                video_progress = st.progress(0)
+                video_placeholder = st.empty()
+                
+                # Callback to update video processing progress
+                def video_progress_callback(progress):
+                    video_progress.progress(progress)
+                
+                # Callback to update the video frame display
+                def frame_callback(frame):
+                    video_placeholder.image(frame, channels="BGR")
+                
+                processing.process_video(
+                    uploaded_video,
+                    progress_callback=video_progress_callback,
+                    frame_callback=frame_callback
+                )
+                st.write("Pose estimation completed!")
+                st.write("Kinematic analysis in progress... (coming soon)")
+                st.write("Processing kinetic data and synchronizing with kinematic data... (coming soon)")
 
-if uploaded_video:
-    st.write(f"Video file {uploaded_video.name} uploaded successfully!")
-    st.video(uploaded_video)
+with tab2:
+    st.header("Results")
+    st.write("This is the Results tab.")
 
-    # Enable the "OK" button only if both files are uploaded
-    if uploaded_excel and uploaded_video:
-        bodyheight = st.number_input("Body height (m)", min_value=0.0, max_value=2.5 ,value=1.87,format="%.2f")
-    bodymass = st.number_input("Body mass (kg)", min_value=20.0,max_value=200.0 , value=80.0, format="%.2f")
-    # Add a dropdown list with various items
-    options_Systems = ["MRD", "TBT"]
-    selected_System = st.selectbox("System", options_Systems)
-    # Conditional logic to change the options in the second dropdown list
-    if selected_System == "MRD":
-        options = ["5O5", "10O5", "TBT"]
-    else:
-        options = ["TBT", "TBT2", "TBT"]
-    selected_Movement = st.selectbox("Type of movement", options)
-
-    if st.button("OK"):
-        st.write("Processing video for pose estimation...")
-
-        # Save the uploaded video to a temporary file
-        tfile = tempfile.NamedTemporaryFile(delete=False)
-        tfile.write(uploaded_video.read())
-
-        # Load the video file
-        cap = cv2.VideoCapture(tfile.name)
-
-        # Initialize MediaPipe Pose
-        mp_pose = mp.solutions.pose
-        pose = mp_pose.Pose()
-        mp_drawing = mp.solutions.drawing_utils
-
-        # Create a placeholder for the video frames
-        frame_placeholder = st.empty()
-        progress_bar = st.progress(0)
-
-        # Get the total number of frames in the video
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        # Process the video frame by frame
-        frame_count = 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Convert the frame to RGB
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Perform pose estimation
-            results = pose.process(frame_rgb)
-
-            # Draw the pose annotation on the frame
-            if results.pose_landmarks:
-                mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
-            # Update the placeholder with the new frame
-            frame_placeholder.image(frame, channels="BGR")
-
-            # Update the progress bar
-            frame_count += 1
-            progress_bar.progress(frame_count / total_frames)
-
-        cap.release()
-        st.write("Pose estimation completed!")
+with tab3:
+    st.header("How to use")
+    st.write("1. Upload an Excel file with kinetic data. For now we accept force plates and motorized equipement")
+    st.write("2. Upload a video file for pose estimation. Generally we recommend to film using a tripod, parallel from the motion plane.")
+    st.write("3. Enter your body height and mass, select the system and movement type, and press OK.")
+    st.write("4. We will handle your kinetic data and synchronize it with kinematic data.")
+    st.write("5. Check the Results tab for visualizations and insights.")
+    st.write("6. Enjoy the experience of Sync AI!")
