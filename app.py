@@ -13,8 +13,9 @@ import time
 st.image("logo.PNG", width=200)
 
 st.title("Sync AI")
+st.header("How to use")
 
-st.write("Upload your files for analysis!")
+st.write("Nice animation here how it works?")
 
 st.sidebar.title("Sidebar")
 if st.sidebar.button("About"):
@@ -31,6 +32,11 @@ uploaded_excel = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
 # File uploader for video files
 uploaded_video = st.file_uploader("Choose a video file", type=["mp4", "mov", "avi"])
 
+
+
+# st.write(f"You selected: {selected_option}")
+# st.write(f"You selected: {selected_option}")
+
 if uploaded_excel:
     st.write(f"Excel file {uploaded_excel.name} uploaded successfully!")
     
@@ -38,7 +44,7 @@ if uploaded_excel:
     df = pd.read_excel(uploaded_excel, header=0)
     
     # Display the DataFrame
-    st.write(df)
+    #st.write(df)
     
     # Simulate data processing with a progress bar
     progress_bar = st.progress(0)
@@ -65,8 +71,20 @@ if uploaded_video:
     st.write(f"Video file {uploaded_video.name} uploaded successfully!")
     st.video(uploaded_video)
 
-# Enable the "OK" button only if both files are uploaded
-if uploaded_excel and uploaded_video:
+    # Enable the "OK" button only if both files are uploaded
+    if uploaded_excel and uploaded_video:
+        bodyheight = st.number_input("Body height (m)", min_value=0.0, max_value=2.5 ,value=1.87,format="%.2f")
+    bodymass = st.number_input("Body mass (kg)", min_value=20.0,max_value=200.0 , value=80.0, format="%.2f")
+    # Add a dropdown list with various items
+    options_Systems = ["MRD", "TBT"]
+    selected_System = st.selectbox("System", options_Systems)
+    # Conditional logic to change the options in the second dropdown list
+    if selected_System == "MRD":
+        options = ["5O5", "10O5", "TBT"]
+    else:
+        options = ["TBT", "TBT2", "TBT"]
+    selected_Movement = st.selectbox("Type of movement", options)
+
     if st.button("OK"):
         st.write("Processing video for pose estimation...")
 
