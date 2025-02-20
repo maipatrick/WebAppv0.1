@@ -5,6 +5,7 @@ import tempfile
 import cv2
 import time
 import processing  # Our custom module for backend processing
+import os
 
 # Display the logo and set up the main title
 st.image("logo.PNG", width=200)
@@ -42,14 +43,14 @@ with tab1:
         
         if fig:
             st.pyplot(fig)
-    
+
     # Video file uploader and processing
     uploaded_video = st.file_uploader("Choose a video file", type=["mp4", "mov", "avi"])
     if uploaded_video:
         st.write(f"Video file {uploaded_video.name} uploaded successfully!")
         st.video(uploaded_video)
         
-        # Show additional inputs only if both files are uploaded
+        # Show additional inputs only if both files are uploaded (if needed)
         if uploaded_excel and uploaded_video:
             bodyheight = st.number_input("Body height (m)", min_value=0.0, max_value=2.5, value=1.87, format="%.2f")
             bodymass = st.number_input("Body mass (kg)", min_value=20.0, max_value=200.0, value=80.0, format="%.2f")
@@ -65,26 +66,19 @@ with tab1:
             
             # When the OK button is pressed, process the video
             if st.button("OK"):
-                st.write("Processing video for pose estimation...")
-                video_progress = st.progress(0)
-                video_placeholder = st.empty()
+                st.write("Processing video for pose estimation using Sports2D...")
+                # Call our updated process_video function from processing.py
+                # Note: progress_callback and frame_callback are now just placeholders because Sports2D runs in batch mode.
+                stdout, stderr = processing.process_video(uploaded_video, bodyheight) #bruker høyde lagt inn manuelt
                 
-                # Callback to update video processing progress
-                def video_progress_callback(progress):
-                    video_progress.progress(progress)
+                st.write("### Sports2D Output:")
+                st.text(stdout)
+                if stderr:
+                    st.error(stderr)
                 
-                # Callback to update the video frame display
-                def frame_callback(frame):
-                    video_placeholder.image(frame, channels="BGR")
-                
-                processing.process_video(
-                    uploaded_video,
-                    progress_callback=video_progress_callback,
-                    frame_callback=frame_callback
-                )
                 st.write("Pose estimation completed!")
-                st.write("Kinematic analysis in progress... (coming soon)")
-                st.write("Processing kinetic data and synchronizing with kinematic data... (coming soon)")
+                #st.write("Kinematic analysis in progress... (coming soon)")
+                #st.write("Processing kinetic data and synchronizing with kinematic data... (coming soon)")
 
 with tab2:
     st.header("Results")

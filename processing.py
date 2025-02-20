@@ -2,7 +2,10 @@
 
 import cv2
 import tempfile
-import mediapipe as mp
+#import mediapipe as mp
+#from Sports2D import Sports2D
+import subprocess #har jeg?
+import toml  # pip install toml if needed
 import time
 import pandas as pd
 import numpy as np
@@ -36,49 +39,49 @@ def process_excel(uploaded_excel, progress_callback=None):
     
     return df, fig
 
-def process_video(uploaded_video, progress_callback=None, frame_callback=None):
+
+def process_video(uploaded_video, height, progress_callback=None, frame_callback=None):
     """
-    Process the uploaded video file for pose estimation.
+    Process the uploaded video file using Sports2D pose estimation.
+    This function creates a temporary configuration file based on the base TOML,
+    overrides the video input with the user's uploaded file, and runs Sports2D
+    as a separate subprocess.
 
     :param uploaded_video: The uploaded video file object.
-    :param progress_callback: A callback function accepting a float (0.0 to 1.0) to update progress.
-    :param frame_callback: A callback function accepting an image frame for display.
+    :param progress_callback: Not used (placeholder for compatibility).
+    :param frame_callback: Not used (placeholder for compatibility).
+    :return: A tuple (stdout, stderr) from the Sports2D process.
     """
     # Save the uploaded video to a temporary file
-    tfile = tempfile.NamedTemporaryFile(delete=False)
-    tfile.write(uploaded_video.read())
-    
-    # Open the video file
-    cap = cv2.VideoCapture(tfile.name)
-    
-    # Initialize MediaPipe Pose and drawing utilities
-    mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose()
-    mp_drawing = mp.solutions.drawing_utils
-    
-    # Get total frame count for progress calculation
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frame_count = 0
-    
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        
-        # Convert the frame for pose estimation
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose.process(frame_rgb)
-        
-        # Draw pose landmarks if detected
-        if results.pose_landmarks:
-            mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        
-        # Use the frame callback to update the UI if provided
-        if frame_callback:
-            frame_callback(frame)
-        
-        frame_count += 1
-        if progress_callback and total_frames > 0:
-            progress_callback(frame_count / total_frames)
-    
-    cap.release()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tfile:
+        tfile.write(uploaded_video.read())
+        video_path = tfile.name
+
+    # Load the base configuration from the provided Sports2D TOML file
+    base_config_file = "Sports2D Config Demo.toml"
+    with open(base_config_file, "r") as f:
+        config = toml.load(f)
+
+    # Override the video input parameter with the temporary video file path
+    config["project"]["video_input"] = video_path
+
+    # Optionally override other parameters, for example:
+    # config["project"]["output"] = "output.mp4"
+    config["project"]["px_to_m_person_height"] = height
+    config["process"]["multiperson"] = False
+
+    # Write the updated configuration to a temporary file
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".toml") as tmp:
+        toml.dump(config, tmp)
+        tmp_config_path = tmp.name
+
+    # Build the command to run Sports2D processing.
+    # In this example, we're calling the script 'run_pose2d.py' from Sports2D.
+    # If Sports2D is installed in a separate environment, you might need to provide the full path to its Python interpreter.
+    command = ["python", "run_pose2d.py", tmp_config_path]
+
+    # Run Sports2D as a subprocess; capture stdout and stderr
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    # Return the output for further processing or debugging
+    return result.stdout, result.stderr
