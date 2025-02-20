@@ -39,13 +39,10 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 matplotlib==3.10.0
 mdurl==0.1.2
-mediapipe
 ml_dtypes==0.5.1
 narwhals==1.26.0
 numpy<2
 open3d==0.18.0
-opencv-contrib-python==4.11.0.86
-opencv-python-headless==4.11.0.86
 openpyxl==3.1.5
 opt_einsum==3.4.0
 packaging==24.2
@@ -69,6 +66,7 @@ rpds-py==0.22.3
 scipy==1.15.1
 sentencepiece==0.2.0
 six==1.17.0
+sports2d==0.4.0
 smmap==5.0.2
 sounddevice==0.5.1
 streamlit==1.42.0
@@ -84,3 +82,5 @@ watchdog==6.0.0
 Werkzeug==3.0.1
 widgetsnbextension==4.0.9
 win32-setctime==1.1.0
+mediapipe
+opencv-python

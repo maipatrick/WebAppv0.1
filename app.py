@@ -6,6 +6,7 @@ import cv2
 import time
 import processing  # Our custom module for backend processing
 import os
+import json
 
 # Display the logo and set up the main title
 st.image("logo.PNG", width=200)
@@ -23,6 +24,12 @@ st.title("Sync AI")
 
 # Create three tabs for the UI
 tab1, tab2, tab3 = st.tabs(["Sync AI", "Results", "How to use"])
+
+# Initialize session state for results if not exists
+if 'processing_results' not in st.session_state:
+    st.session_state.processing_results = None
+if 'processing_error' not in st.session_state:
+    st.session_state.processing_error = None
 
 with tab1:
     tab1.write('Check out "How to use" tab for more information.')
@@ -63,26 +70,108 @@ with tab1:
             else:
                 options = ["TBT", "TBT2", "TBT"]
             selected_Movement = st.selectbox("Type of movement", options)
-            
+            # Option to show/hide pose estimation window
+            show_pose = st.selectbox("Show pose estimation window", ["False", "True"])
+
             # When the OK button is pressed, process the video
             if st.button("OK"):
-                st.write("Processing video for pose estimation using Sports2D...")
-                # Call our updated process_video function from processing.py
-                # Note: progress_callback and frame_callback are now just placeholders because Sports2D runs in batch mode.
-                stdout, stderr = processing.process_video(uploaded_video, bodyheight) #bruker høyde lagt inn manuelt
+                st.write("Processing video for pose estimation using Sports2D. Please keep the window open...")
+                results, error = processing.process_video(uploaded_video, bodyheight, show_pose=show_pose)
                 
-                st.write("### Sports2D Output:")
-                st.text(stdout)
-                if stderr:
-                    st.error(stderr)
+                # Store results in session state
+                st.session_state.processing_results = results
+                st.session_state.processing_error = error
                 
                 st.write("Pose estimation completed!")
-                #st.write("Kinematic analysis in progress... (coming soon)")
-                #st.write("Processing kinetic data and synchronizing with kinematic data... (coming soon)")
+                st.write("Sync AI is working on synchronizing your data... (coming soon)")
+                st.write("Please check the Results tab for visualizations and insights.")
+                
+                if error:
+                    st.error(f"Errors during processing:\n{error}")
+    
+    #mer kode her?
 
 with tab2:
     st.header("Results")
-    st.write("This is the Results tab.")
+    
+    # Check if we have processed video data to display
+    if st.session_state.processing_results:
+        st.write("Sports2D Processing Results:")
+        
+        # Try to parse results as dictionary
+        try:
+            results_dict = eval(st.session_state.processing_results)  # Safely convert string representation to dict
+            
+            # Create tabs for different result types
+            result_tabs = st.tabs(["Pose Data (TRC)", "Angles (MOT)", "Processing Log"])
+            
+            # Tab for TRC files (pose data)
+            with result_tabs[0]:
+                trc_files = [k for k in results_dict.keys() if k.startswith('trc_')]
+                if trc_files:
+                    for trc_file in trc_files:
+                        st.write(f"### {trc_file}")
+                        st.text(results_dict[trc_file])
+                        st.download_button(
+                            label=f"Download {trc_file}",
+                            data=results_dict[trc_file],
+                            file_name=trc_file.replace('trc_', ''),
+                            mime="text/plain"
+                        )
+                else:
+                    st.write("No pose data (TRC) files available.")
+            
+            # Tab for MOT files (angles)
+            with result_tabs[1]:
+                mot_files = [k for k in results_dict.keys() if k.startswith('mot_')]
+                if mot_files:
+                    for mot_file in mot_files:
+                        st.write(f"### {mot_file}")
+                        st.text(results_dict[mot_file])
+                        st.download_button(
+                            label=f"Download {mot_file}",
+                            data=results_dict[mot_file],
+                            file_name=mot_file.replace('mot_', ''),
+                            mime="text/plain"
+                        )
+                else:
+                    st.write("No angle data (MOT) files available.")
+            
+            # Tab for processing log
+            with result_tabs[2]:
+                st.write("### Standard Output")
+                if results_dict.get('stdout'):
+                    st.text(results_dict['stdout'])
+                    st.download_button(
+                        label="Download Processing Log",
+                        data=results_dict['stdout'],
+                        file_name="sports2d_processing.log",
+                        mime="text/plain"
+                    )
+                
+                if results_dict.get('stderr'):
+                    st.write("### Errors/Warnings")
+                    st.error(results_dict['stderr'])
+                    st.download_button(
+                        label="Download Error Log",
+                        data=results_dict['stderr'],
+                        file_name="sports2d_errors.log",
+                        mime="text/plain"
+                    )
+                
+        except Exception as e:
+            st.error(f"Error parsing results: {str(e)}")
+            st.text(st.session_state.processing_results)  # Show raw results as fallback
+            
+            # Still provide download option for raw data
+            st.download_button(
+                label="Download Raw Results",
+                data=st.session_state.processing_results,
+                file_name="sports2d_results.txt",
+                mime="text/plain"
+            )
+    else:
+        st.write("No results available yet. Please process a video file first.")
 
 with tab3:
     st.header("How to use")
