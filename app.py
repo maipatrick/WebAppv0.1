@@ -30,6 +30,10 @@ if 'processing_results' not in st.session_state:
     st.session_state.processing_results = None
 if 'processing_error' not in st.session_state:
     st.session_state.processing_error = None
+if 'show_error' not in st.session_state:
+    st.session_state.show_error = False
+if 'processing_complete' not in st.session_state:
+    st.session_state.processing_complete = False
 
 with tab1:
     tab1.write('Check out "How to use" tab for more information.')
@@ -71,7 +75,7 @@ with tab1:
                 options = ["TBT", "TBT2", "TBT"]
             selected_Movement = st.selectbox("Type of movement", options)
             # Option to show/hide pose estimation window
-            show_pose = st.selectbox("Show pose estimation window", ["False", "True"])
+            show_pose = st.checkbox("Show pose estimation window", value=False)
 
             # When the OK button is pressed, process the video
             if st.button("OK"):
@@ -81,13 +85,26 @@ with tab1:
                 # Store results in session state
                 st.session_state.processing_results = results
                 st.session_state.processing_error = error
-                
+                st.session_state.processing_complete = True  # Mark processing as complete
+            
+            # Show results if processing is complete
+            if st.session_state.processing_complete:
                 st.write("Pose estimation completed!")
-                st.write("Sync AI is working on synchronizing your data... (coming soon)")
-                st.write("Please check the Results tab for visualizations and insights.")
+                # st.write("Sync AI is now working on synchronizing your data... (coming soon)")
+                # ## add function to sync the data.
+                # st.write("There we go! Please check the Results tab for visualizations and insights.")
                 
-                if error:
-                    st.error(f"Errors during processing:\n{error}")
+                if st.session_state.processing_error:
+                    st.error("Errors during processing")
+                    
+                    # Toggle the error display
+                    if st.button("Press to see errors", key="error_button"):
+                        st.session_state.show_error = not st.session_state.show_error
+                    
+                    # Show error if toggled
+                    if st.session_state.show_error:
+                        st.markdown("**Error Details:**")
+                        st.code(st.session_state.processing_error)
     
     #mer kode her?
 
@@ -110,8 +127,8 @@ with tab2:
                 trc_files = [k for k in results_dict.keys() if k.startswith('trc_')]
                 if trc_files:
                     for trc_file in trc_files:
-                        st.write(f"### {trc_file}")
-                        st.text(results_dict[trc_file])
+                        #st.write(f"### {trc_file}")
+                        #st.text(results_dict[trc_file])
                         st.download_button(
                             label=f"Download {trc_file}",
                             data=results_dict[trc_file],
@@ -126,8 +143,8 @@ with tab2:
                 mot_files = [k for k in results_dict.keys() if k.startswith('mot_')]
                 if mot_files:
                     for mot_file in mot_files:
-                        st.write(f"### {mot_file}")
-                        st.text(results_dict[mot_file])
+                        #st.write(f"### {mot_file}")
+                        #st.text(results_dict[mot_file])
                         st.download_button(
                             label=f"Download {mot_file}",
                             data=results_dict[mot_file],
@@ -141,23 +158,11 @@ with tab2:
             with result_tabs[2]:
                 st.write("### Standard Output")
                 if results_dict.get('stdout'):
-                    st.text(results_dict['stdout'])
-                    st.download_button(
-                        label="Download Processing Log",
-                        data=results_dict['stdout'],
-                        file_name="sports2d_processing.log",
-                        mime="text/plain"
-                    )
+                    st.text(results_dict['stdout'])            
                 
                 if results_dict.get('stderr'):
                     st.write("### Errors/Warnings")
                     st.error(results_dict['stderr'])
-                    st.download_button(
-                        label="Download Error Log",
-                        data=results_dict['stderr'],
-                        file_name="sports2d_errors.log",
-                        mime="text/plain"
-                    )
                 
         except Exception as e:
             st.error(f"Error parsing results: {str(e)}")
