@@ -101,9 +101,14 @@ try:
     result = subprocess.run(command, capture_output=True, text=True)
     
     # Try to find and read all relevant output files
-    results_data = {{}}  # Double braces to escape
+    results_data = {{}}
     results_data["stdout"] = result.stdout
     results_data["stderr"] = result.stderr
+    
+    # Look for processed video in Sports2D directory
+    video_files = glob.glob(os.path.join(sports2d_dir, "*.mp4"))
+    if video_files:
+        results_data["video_processed"] = video_files
     
     # Look for TRC files (pose data) in Sports2D directory
     trc_files = glob.glob(os.path.join(sports2d_dir, "*.trc"))
@@ -118,23 +123,6 @@ try:
         if os.path.exists(mot_file):
             with open(mot_file, 'r') as f:
                 results_data["mot_" + os.path.basename(mot_file)] = f.read()
-    
-    # Look for processed video in Sports2D directory
-    video_files = glob.glob(os.path.join(sports2d_dir, "*.mp4"))
-    for video_file in video_files:
-        if os.path.exists(video_file):
-            with open(video_file, 'rb') as f:
-                results_data["video_" + os.path.basename(video_file)] = f.read().hex()
-    
-    # Look for processed images in Sports2D directory
-    img_dir = os.path.join(sports2d_dir, base_name + "_Sports2D_img")
-    if os.path.exists(img_dir):
-        results_data["img_dir_exists"] = True
-        # Optional: read some sample images
-        img_files = glob.glob(os.path.join(img_dir, "*.png"))[:5]  # First 5 images
-        for img_file in img_files:
-            with open(img_file, 'rb') as f:
-                results_data["img_" + os.path.basename(img_file)] = f.read().hex()
     
     print("RESULTS_START")
     print(str(results_data))
@@ -184,3 +172,55 @@ except Exception as e:
                 os.unlink(script_path)
             except Exception:
                 pass
+
+def parse_mot_file(mot_content):
+    """Parse MOT file content and return a pandas DataFrame"""
+    lines = mot_content.split('\n')
+    
+    # Find the header row
+    header_idx = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith('endheader'):
+            header_idx = i
+            break
+    
+    # Get column names
+    columns = lines[header_idx + 1].strip().split('\t')
+    
+    # Parse data
+    data = []
+    for line in lines[header_idx + 2:]:
+        if line.strip():
+            try:
+                row = [float(x) if x.strip() else None for x in line.strip().split('\t')]
+                data.append(row)
+            except:
+                continue
+    
+    return pd.DataFrame(data, columns=columns)
+
+def parse_trc_file(trc_content):
+    """Parse TRC file content and return a pandas DataFrame"""
+    lines = trc_content.split('\n')
+    
+    # Find the header row
+    header_idx = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith('endheader'):
+            header_idx = i
+            break
+    
+    # Get column names and data
+    columns = lines[header_idx + 1].strip().split('\t')
+    
+    # Parse data
+    data = []
+    for line in lines[header_idx + 3:]:  # Skip units row
+        if line.strip():
+            try:
+                row = [float(x) if x.strip() else None for x in line.strip().split('\t')]
+                data.append(row)
+            except:
+                continue
+    
+    return pd.DataFrame(data, columns=columns)
