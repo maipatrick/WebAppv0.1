@@ -93,7 +93,6 @@ sentencepiece==0.2.0
 six==1.17.0
 smmap==5.0.2
 sounddevice==0.5.1
-sports2d==0.6.3
 stack-data==0.6.3
 statsmodels==0.14.4
 streamlit==1.42.0
