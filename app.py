@@ -1,12 +1,11 @@
 import streamlit as st
 import streamlit.components.v1 as components
-
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
-from video_fun import process_video
+import os
+from video_fun import process_video, run_pose_estimation
 
 # Display the logo
 st.image("logo.PNG", width=200)
@@ -65,6 +64,16 @@ if uploaded_video:
     st.write(f"Video file {uploaded_video.name} uploaded successfully!")
     st.video(uploaded_video)
 
+    # Ensure the temporary directory exists
+    temp_dir = "tempDir"
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    # Save the uploaded video to the temporary location
+    video_path = os.path.join(temp_dir, uploaded_video.name)
+    with open(video_path, "wb") as f:
+        f.write(uploaded_video.getbuffer())
+
     # Enable the "OK" button only if both files are uploaded
     if uploaded_excel and uploaded_video:
         bodyheight = st.number_input("Body height (m)", min_value=0.0, max_value=2.5 ,value=1.87,format="%.2f")
@@ -81,10 +90,6 @@ if uploaded_video:
 
     if st.button("OK"):
         st.write("Processing video for pose estimation...")
-        process_video(uploaded_video, show_pose=0)
-
-
-
-
-    
-    st.write("Pose estimation completed!")
+        # Run pose estimation on the saved video file
+        run_pose_estimation(video_path)
+        st.write("Pose estimation completed!")

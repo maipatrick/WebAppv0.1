@@ -1,34 +1,22 @@
-import cv2
-from sports2d import Sports2D
+from Sports2D.Sports2D import process, DEFAULT_CONFIG
 
-# Path to the video file
-video_path = "C:/Users/adpatrick/OneDrive - nih.no/Desktop/WebApp1080sync/WebAppv0.1/fp22_m505_left 2.MOV"
+# Modify the default configuration as needed
+config = DEFAULT_CONFIG.copy()
+config['project']['video_input'] = [r"C:\Users\adpatrick\OneDrive - nih.no\Desktop\WebApp1080sync\WebAppv0.1\fp22_m505_left 2.MOV"]
+config['process']['result_dir'] = 'fp22_m505_left 2'
+config['process']['show_realtime_results'] = False  # Disable real-time display
+config['process']['save_vid'] = False
+config['process']['save_img'] = False
+config['process']['save_pose'] = True
+config['process']['calculate_angles'] = True
+config['process']['save_angles'] = True
+config['process']['multi_person'] = True
+#px_to_meters_conversion
+config['px_to_meters_conversion']['to_meters'] = True
+config['px_to_meters_conversion']['make_c3d'] = False
+# filter
+config['post-processing']['butterworth']['cut_off_frequency'] = 6
+config['post-processing']['show_graphs']= False
 
-# Load the video file
-cap = cv2.VideoCapture(video_path)
-
-# Initialize Sports2D
-sports2d_model = Sports2D()
-
-# Process the video frame by frame
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    # Perform pose estimation using Sports2D
-    results = sports2d_model.process(frame)
-
-    # Draw the pose annotation on the frame
-    sports2d_model.draw_landmarks(frame, results)
-
-    # Display the frame
-    cv2.imshow('Sports2D Pose Estimation', frame)
-
-    # Break the loop if 'q' is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Release the video capture object and close all OpenCV windows
-cap.release()
-cv2.destroyAllWindows()
+# Call the process function with the modified configuration
+process(config)

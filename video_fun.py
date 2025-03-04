@@ -2,6 +2,51 @@ import cv2
 import tempfile
 import mediapipe as mp
 import streamlit as st
+import os
+from Sports2D.Sports2D import process, DEFAULT_CONFIG
+
+def run_pose_estimation(video_path):
+    """
+    Run pose estimation on the given video path.
+
+    Parameters:
+    video_path (str): The path to the video file.
+    """
+    # Modify the default configuration as needed
+    config = DEFAULT_CONFIG.copy()
+    config['project']['video_input'] = [video_path]
+    config['process']['result_dir'] = ''
+    config['process']['show_realtime_results'] = False  # Disable real-time display
+    config['process']['save_vid'] = True
+    config['process']['save_img'] = False
+    config['process']['save_pose'] = True
+    config['process']['calculate_angles'] = True
+    config['process']['save_angles'] = True
+    config['process']['multiperson'] = True
+    # px_to_meters_conversion
+    config['px_to_meters_conversion']['to_meters'] = True
+    config['px_to_meters_conversion']['make_c3d'] = False
+    # filter
+    config['post-processing']['butterworth']['cut_off_frequency'] = 6
+    config['post-processing']['show_graphs'] = False
+
+    # Call the process function with the modified configuration
+    process(config)
+        
+    processed_video_name = "fp22_m505_left 2_Sports2D.mp4"
+    processed_video_path = os.path.join("fp22_m505_left 2_Sports2D", processed_video_name)
+
+        # Allow the user to download the processed video
+    st.markdown(f"Download the processed video [here]('./fp22_m505_left 2_Sports2D/fp22_m505_left 2_Sports2D.mp4')")
+    st.video(processed_video_path)
+    
+    
+    processed_video_name = r"fp22_m505_left 2_Sports2D.mp4"
+    processed_video_path = ('fp22_m505_left 2_Sports2D/'+ processed_video_name)
+
+    # Allow the user to download the processed video
+    st.markdown(f"Download the processed video [here](./{processed_video_path})")
+    st.video(processed_video_path)
 
 def process_video(uploaded_video, show_pose=1):
     # Save the uploaded video to a temporary file
