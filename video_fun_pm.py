@@ -1,24 +1,16 @@
-import cv2
+import cv2 as cv2_headless
 import mediapipe as mp
-import pandas as pd
 from scipy.signal import butter, filtfilt
 import pandas as pd
 from default_processing_pm import upsample_signal, sync_signals
-import cv2
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from matplotlib.patches import Rectangle
-import pandas as pd
-import cv2
-import numpy as np
-import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import tempfile
 
-import tempfile
 
 def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
     # Crop the data in df_pos_com to the lag and cut_index
