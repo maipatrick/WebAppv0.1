@@ -1,4 +1,4 @@
-import cv2 as cv2_headless
+import cv2
 import mediapipe as mp
 from scipy.signal import butter, filtfilt
 import pandas as pd
