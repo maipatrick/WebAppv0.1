@@ -258,15 +258,10 @@ def process_video(video_path, show_pose=1):
                 frame_data[f'{landmark_name}_y'] = landmark.y
             landmarks_data.append(frame_data)
 
-            # Draw the pose annotation on the frame if show_pose is 1
-            if show_pose == 1:
-                mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
         # Update the progress
         frame_count += 1
 
     cap.release()
-    #cv2.destroyAllWindows()
 
     # Convert the landmarks data to a DataFrame
     df_landmarks = pd.DataFrame(landmarks_data)
