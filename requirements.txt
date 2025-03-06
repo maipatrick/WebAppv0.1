@@ -73,7 +73,7 @@ narwhals==1.26.0
 nbformat==5.10.4
 nest-asyncio==1.6.0
 networkx==3.4.2
-numpy==2.2.3
+numpy==1.21.0
 open3d==0.18.0
 opencv-contrib-python==4.11.0.86
 opencv-python-headless==4.11.0.86
@@ -102,7 +102,6 @@ PyQt5_sip==12.17.0
 python-dateutil==2.9.0.post0
 Python-EasyConfig==0.1.7
 pytz==2025.1
-pywin32==308
 PyYAML==6.0.2
 referencing==0.36.2
 requests==2.32.3
