@@ -5,6 +5,8 @@ import pandas as pd
 from default_processing_pm import upsample_signal, sync_signals
 import numpy as np
 import os
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive 'Agg'
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
