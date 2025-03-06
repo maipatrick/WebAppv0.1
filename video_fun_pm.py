@@ -21,6 +21,10 @@ import streamlit as st
 import streamlit as st
 
 def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
+    # Create a progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
     # Create a temporary directory for processing
     with tempfile.TemporaryDirectory() as temp_dir:
         # Crop the data in df_pos_com to the lag and cut_index
@@ -28,7 +32,7 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         df_distance = df_distance.iloc[lag:cut_index, :].reset_index(drop=True)
         
         # Debugging: Print lengths before padding
-        st.write(f"Lengths before padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
+        #st.write(f"Lengths before padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
         
         # Ensure sync_a, df_pos_com, and df_distance have the same length
         max_length = max(len(sync_a), len(df_pos_com), len(df_distance))
@@ -37,7 +41,7 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         df_distance = df_distance.reindex(range(max_length), method='ffill')
         
         # Debugging: Print lengths after padding
-        st.write(f"Lengths after padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
+        #st.write(f"Lengths after padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
         
         # Open the video
         cap = cv2.VideoCapture(video_path)
@@ -76,22 +80,22 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
         # Debugging: Print total frames in the video
-        st.write(f"Total frames in the video: {total_frames}")
+        #st.write(f"Total frames in the video: {total_frames}")
         
         # Adjust lengths if necessary
         if total_frames > max_length:
-            st.write("Video has more frames than data. Padding data.")
+            #st.write("Video has more frames than data. Padding data.")
             sync_a = np.pad(sync_a, (0, total_frames - max_length), 'edge')
             df_pos_com = df_pos_com.reindex(range(total_frames), method='ffill')
             df_distance = df_distance.reindex(range(total_frames), method='ffill')
         elif total_frames < max_length:
-            st.write("Video has fewer frames than data. Trimming data.")
+            #st.write("Video has fewer frames than data. Trimming data.")
             sync_a = sync_a[:total_frames]
             df_pos_com = df_pos_com.iloc[:total_frames]
             df_distance = df_distance.iloc[:total_frames]
         
         # Debugging: Print lengths after adjustment
-        st.write(f"Lengths after adjustment: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}, total_frames={total_frames}")
+        #st.write(f"Lengths after adjustment: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}, total_frames={total_frames}")
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -100,6 +104,11 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
             if frame_count < lag or frame_count > cut_index:
                 frame_count += 1
                 continue
+            
+            # Update progress
+            progress = frame_count / total_frames
+            progress_bar.progress(progress)
+            status_text.text(f"Processing frame {frame_count}/{total_frames}")
             
             # Add com_x and com_y circles
             if frame_count - lag < len(df_pos_com):
@@ -131,7 +140,7 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
                        output_path=temp_plot_path)
             
             # Debugging: Print lengths during frame processing
-            st.write(f"Frame {frame_count}: sync_a_slice={len(sync_a[lag:frame_count + 1])}, df_distance_slice={len(df_distance.iloc[:frame_count - lag + 1])}")
+            #st.write(f"Frame {frame_count}: sync_a_slice={len(sync_a[lag:frame_count + 1])}, df_distance_slice={len(df_distance.iloc[:frame_count - lag + 1])}")
             
             # Overlay plot on frame
             if os.path.exists(temp_plot_path):
@@ -153,6 +162,7 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         
         # Convert the output to MP4 using FFmpeg if necessary
         if not temp_output.endswith('.mp4'):
+            status_text.text("Converting video format...")
             final_output = os.path.join(temp_dir, 'output.mp4')
             os.system(f'ffmpeg -i {temp_output} -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k {final_output} -y')
             temp_output = final_output
@@ -160,6 +170,10 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         # Read the final video file
         with open(temp_output, 'rb') as f:
             video_data = f.read()
+        
+        # Clear the progress bar and status text
+        progress_bar.empty()
+        status_text.empty()
         
         return video_data
     
@@ -284,6 +298,10 @@ def filter_landmarks(df_landmarks_raw, fps_video, cutoff_frequency):
 
 
 def process_video(video_path, show_pose=1):
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
     # Load the video file
     cap = cv2.VideoCapture(video_path)
 
@@ -306,6 +324,9 @@ def process_video(video_path, show_pose=1):
 
     # Process the video frame by frame
     frame_count = 0
+    
+    status_text.text("Processing video frames...")
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
@@ -327,9 +348,19 @@ def process_video(video_path, show_pose=1):
             landmarks_data.append(frame_data)
 
         # Update the progress
+        progress = frame_count / total_frames
+        progress_bar.progress(progress)
+        status_text.text(f"Processing frame {frame_count + 1}/{total_frames}")
+        
+        # Update the frame count
         frame_count += 1
 
+    # Clean up
     cap.release()
+
+    # Clear progress indicators
+    progress_bar.empty()
+    status_text.empty()
 
     # Convert the landmarks data to a DataFrame
     df_landmarks = pd.DataFrame(landmarks_data)
