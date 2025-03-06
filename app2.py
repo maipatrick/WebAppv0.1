@@ -1,7 +1,7 @@
 import streamlit as st
-from video_fun_pm import process_video, filter_landmarks, calculate_com, draw_com_on_video, process_and_overlay_video,process_and_overlay_videoStreamlit
+from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit
 from d1080_fun_pm import read_1080, filter_1080_data
-from default_processing_pm import pad_df,replace_non_finite_values, sync_signals, upsample_signal, sync_signals2, sync_signals22, downsample_df, replace_non_finite_valuesDF
+from default_processing_pm import pad_df, sync_signals, upsample_signal, sync_signals22, downsample_df, replace_non_finite_valuesDF
 import pandas as pd
 import tempfile
 

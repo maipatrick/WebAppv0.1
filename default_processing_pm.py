@@ -1,16 +1,10 @@
 # TODO move to processing functions
 import numpy as np
 import pandas as pd
-from scipy.signal import correlate
 import matplotlib.pyplot as plt
-
-import numpy as np
-import pandas as pd
 from scipy.signal import correlate
 
-import numpy as np
-import pandas as pd
-from scipy.signal import correlate
+
 
 def sync_signals2(signal_a, signal_b):
     # Ensure both signals are numpy arrays
@@ -44,9 +38,6 @@ def sync_signals2(signal_a, signal_b):
         synchronized_shorter_signal = np.pad(synchronized_shorter_signal, (0, len(longer_signal) - len(synchronized_shorter_signal)), 'edge')
 
     return longer_signal, synchronized_shorter_signal, lag
-
-import pandas as pd
-import numpy as np
 
 def replace_non_finite_valuesDF(df):
     """

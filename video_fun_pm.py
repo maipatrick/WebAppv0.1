@@ -2,7 +2,6 @@ import cv2
 import mediapipe as mp
 from scipy.signal import butter, filtfilt
 import pandas as pd
-from default_processing_pm import upsample_signal, sync_signals
 import numpy as np
 import os
 import matplotlib
@@ -215,130 +214,6 @@ def filter_landmarks(df_landmarks_raw, fps_video, cutoff_frequency):
 
     return df_filtered
 
-def cut_video(video_path, lag, cut_index):
-    directory, filename = os.path.split(video_path)
-    output_path = os.path.join(directory, 'cutted_video.avi')
-    
-    cap = cv2.VideoCapture(video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(output_path, fourcc, fps, (1920, 1080))
-    
-    for i in range(total_frames):
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if i >= lag and i <= cut_index:
-            out.write(frame)
-        if i > cut_index:
-            break
-    
-    cap.release()
-    out.release()
-    #cv2.destroyAllWindows()
-    return output_path
-
-
-# def process_video2(video_path, show_pose=1):
-#     # Load the video file
-#     cap = cv2.VideoCapture(video_path)
-
-#     # Initialize MediaPipe Pose
-#     mp_pose = mp.solutions.pose
-#     pose = mp_pose.Pose()
-#     mp_drawing = mp.solutions.drawing_utils
-
-#     # Get the total number of frames in the video
-#     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-#     # Get the frames per second (fps) of the video
-#     fps = cap.get(cv2.CAP_PROP_FPS)
-    
-#     # Calculate the capturing length in seconds
-#     capturing_length = total_frames / fps
-
-#     # Initialize a list to store the landmarks data
-#     landmarks_data = []
-
-#     # Process the video frame by frame
-#     frame_count = 0
-#     while cap.isOpened():
-#         ret, frame = cap.read()
-#         if not ret:
-#             break
-#         # Your existing code to process each frame...
-#         frame_count += 1
-
-#     cap.release()
-#     return landmarks_data, fps, capturing_length, total_frames
-
-
-# def process_video_original(video_path, show_pose=1):
-#     # Load the video file
-#     cap = cv2.VideoCapture(video_path)
-
-#     # Initialize MediaPipe Pose
-#     mp_pose = mp.solutions.pose
-#     pose = mp_pose.Pose()
-#     mp_drawing = mp.solutions.drawing_utils
-
-#     # Get the total number of frames in the video
-#     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-#     # Get the frames per second (fps) of the video
-#     fps = cap.get(cv2.CAP_PROP_FPS)
-    
-#     # Calculate the capturing length in seconds
-#     capturing_length = total_frames / fps
-
-#     # Initialize a list to store the landmarks data
-#     landmarks_data = []
-
-#     # Process the video frame by frame
-#     frame_count = 0
-#     while cap.isOpened():
-#         ret, frame = cap.read()
-#         if not ret:
-#             break
-
-#         # Convert the frame to RGB
-#         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-#         # Perform pose estimation
-#         results = pose.process(frame_rgb)
-
-#         # Extract and store landmarks data if available
-#         if results.pose_landmarks:
-#             frame_data = {'frame': frame_count}
-#             for idx, landmark in enumerate(results.pose_landmarks.landmark):
-#                 landmark_name = mp_pose.PoseLandmark(idx).name.lower()
-#                 frame_data[f'{landmark_name}_x'] = landmark.x
-#                 frame_data[f'{landmark_name}_y'] = landmark.y
-#             landmarks_data.append(frame_data)
-
-#             # Draw the pose annotation on the frame if show_pose is 1
-#             if show_pose == 1:
-#                 mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
-#         # Display the frame
-#         cv2.imshow('Pose Estimation', frame)
-
-#         # Break the loop if 'q' is pressed
-#         if cv2.waitKey(1) & 0xFF == ord('q'):
-#             break
-
-#         # Update the progress
-#         frame_count += 1
-
-#     cap.release()
-#     cv2.destroyAllWindows()
-
-#     # Convert the landmarks data to a DataFrame
-#     df_landmarks = pd.DataFrame(landmarks_data)
-
-#     return df_landmarks, fps, capturing_length, total_frames
-
 
 def process_video(video_path, show_pose=1):
     # Load the video file
@@ -468,8 +343,6 @@ def calculate_com(df_landmarks_filtered):
     return df_landmarks_filtered
 
 
-
-def process_and_overlay_video(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
     # Crop the data in df_pos_com to the lag and cut_index
     df_pos_com = df_pos_com.iloc[lag:cut_index, :].reset_index(drop=True)
     df_distance = df_distance.iloc[lag:cut_index, :].reset_index(drop=True)
@@ -652,7 +525,7 @@ def process_and_overlay_video(video_path, df_pos_com, sync_a, lag, cut_index, to
     
     print(f'Video with speed signal overlay created successfully: {output_video_path}')
 
-def draw_com_on_video(video_path, df_com, output_path):
+
     # Load the video file
     cap = cv2.VideoCapture(video_path)
     
