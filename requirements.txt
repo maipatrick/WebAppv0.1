@@ -73,7 +73,7 @@ narwhals==1.26.0
 nbformat==5.10.4
 nest-asyncio==1.6.0
 networkx==3.4.2
-numpy==1.21.0
+numpy>=1.23
 open3d==0.18.0
 opencv-contrib-python==4.11.0.86
 opencv-python-headless==4.11.0.86
