@@ -14,7 +14,9 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
 import tempfile
+import streamlit as st
 
+import streamlit as st
 
 def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
     # Create a temporary directory for processing
@@ -23,10 +25,18 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         df_pos_com = df_pos_com.iloc[lag:cut_index, :].reset_index(drop=True)
         df_distance = df_distance.iloc[lag:cut_index, :].reset_index(drop=True)
         
+        # Debugging: Print lengths before padding
+        st.write(f"Lengths before padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
+        
+        # Ensure sync_a, df_pos_com, and df_distance have the same length
         max_length = max(len(sync_a), len(df_pos_com), len(df_distance))
         sync_a = np.pad(sync_a, (0, max_length - len(sync_a)), 'edge')
         df_pos_com = df_pos_com.reindex(range(max_length), method='ffill')
         df_distance = df_distance.reindex(range(max_length), method='ffill')
+        
+        # Debugging: Print lengths after padding
+        st.write(f"Lengths after padding: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}")
+        
         # Open the video
         cap = cv2.VideoCapture(video_path)
         fps = cap.get(cv2.CAP_PROP_FPS)
@@ -62,6 +72,9 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         # Process each frame
         frame_count = 0
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Debugging: Print total frames in the video
+        st.write(f"Total frames in the video: {total_frames}")
         
         while cap.isOpened():
             ret, frame = cap.read()
@@ -100,6 +113,9 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
                        cut_index=cut_index,
                        output_path=temp_plot_path)
             
+            # Debugging: Print lengths during frame processing
+            st.write(f"Frame {frame_count}: sync_a_slice={len(sync_a[lag:frame_count + 1])}, df_distance_slice={len(df_distance.iloc[:frame_count - lag + 1])}")
+            
             # Overlay plot on frame
             if os.path.exists(temp_plot_path):
                 plot_img = cv2.imread(temp_plot_path, cv2.IMREAD_UNCHANGED)
@@ -129,7 +145,7 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
             video_data = f.read()
         
         return video_data
-
+    
 def create_plot(time_values, sync_a_slice, df_distance, total_time, sync_a, lag, cut_index, output_path):
     plt.figure(figsize=(8, 4), facecolor='none')
     ax = plt.gca()
