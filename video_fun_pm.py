@@ -18,6 +18,8 @@ import streamlit as st
 
 import streamlit as st
 
+import streamlit as st
+
 def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
     # Create a temporary directory for processing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -75,6 +77,21 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         
         # Debugging: Print total frames in the video
         st.write(f"Total frames in the video: {total_frames}")
+        
+        # Adjust lengths if necessary
+        if total_frames > max_length:
+            st.write("Video has more frames than data. Padding data.")
+            sync_a = np.pad(sync_a, (0, total_frames - max_length), 'edge')
+            df_pos_com = df_pos_com.reindex(range(total_frames), method='ffill')
+            df_distance = df_distance.reindex(range(total_frames), method='ffill')
+        elif total_frames < max_length:
+            st.write("Video has fewer frames than data. Trimming data.")
+            sync_a = sync_a[:total_frames]
+            df_pos_com = df_pos_com.iloc[:total_frames]
+            df_distance = df_distance.iloc[:total_frames]
+        
+        # Debugging: Print lengths after adjustment
+        st.write(f"Lengths after adjustment: sync_a={len(sync_a)}, df_pos_com={len(df_pos_com)}, df_distance={len(df_distance)}, total_frames={total_frames}")
         
         while cap.isOpened():
             ret, frame = cap.read()
