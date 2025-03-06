@@ -23,16 +23,35 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         df_pos_com = df_pos_com.iloc[lag:cut_index, :].reset_index(drop=True)
         df_distance = df_distance.iloc[lag:cut_index, :].reset_index(drop=True)
         
+        max_length = max(len(sync_a), len(df_pos_com), len(df_distance))
+        sync_a = np.pad(sync_a, (0, max_length - len(sync_a)), 'edge')
+        df_pos_com = df_pos_com.reindex(range(max_length), method='ffill')
+        df_distance = df_distance.reindex(range(max_length), method='ffill')
         # Open the video
         cap = cv2.VideoCapture(video_path)
         fps = cap.get(cv2.CAP_PROP_FPS)
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
-        # Use H.264 codec for better compatibility
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        output_video_path = os.path.join(temp_dir, 'output.mp4')
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        # Use MPEG4 codec which is more widely supported
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        temp_output = os.path.join(temp_dir, 'temp_output.mp4')
+        out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+        
+        if not out.isOpened():
+            # Fallback to other codecs if mp4v fails
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            temp_output = os.path.join(temp_dir, 'temp_output.avi')
+            out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+            
+            if not out.isOpened():
+                # Last resort - try MJPG
+                fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                temp_output = os.path.join(temp_dir, 'temp_output.avi')
+                out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+        
+        if not out.isOpened():
+            raise Exception("Could not initialize video writer. No compatible codec found.")
         
         # Set style for better visualization
         plt.style.use('dark_background')
@@ -99,8 +118,14 @@ def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_
         cap.release()
         out.release()
         
+        # Convert the output to MP4 using FFmpeg if necessary
+        if not temp_output.endswith('.mp4'):
+            final_output = os.path.join(temp_dir, 'output.mp4')
+            os.system(f'ffmpeg -i {temp_output} -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k {final_output} -y')
+            temp_output = final_output
+        
         # Read the final video file
-        with open(output_video_path, 'rb') as f:
+        with open(temp_output, 'rb') as f:
             video_data = f.read()
         
         return video_data
