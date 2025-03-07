@@ -13,6 +13,13 @@ logging.basicConfig(filename='user_activity.log', level=logging.INFO, format='%(
 def log_activity(activity):
     logging.info(activity)
 
+# Set page configuration
+st.set_page_config(
+    page_title="Video and Excel File Processing App",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
 st.title("Video and Excel File Processing App")
 
 # Initialize session state
