@@ -6,12 +6,22 @@ import pandas as pd
 import tempfile
 import os
 import logging
+import requests
+import time
 
 # Configure logging
 logging.basicConfig(filename='user_activity.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
+def get_user_country():
+    try:
+        ip_info = requests.get('https://ipinfo.io').json()
+        return ip_info.get('country', 'Unknown')
+    except Exception as e:
+        return 'Unknown'
+
 def log_activity(activity):
-    logging.info(activity)
+    country = get_user_country()
+    logging.info(f"{activity} - Country: {country}")
 
 # Set page configuration
 st.set_page_config(
@@ -29,12 +39,12 @@ if 'processing_done' not in st.session_state:
 # Upload video file
 video_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi"])
 if video_file:
-    log_activity(f"Video file uploaded: {video_file.name}")
+    log_activity(f"Raw video file uploaded: {video_file.name}")
 
 # Upload Excel file
 excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
 if excel_file:
-    log_activity(f"Excel file uploaded: {excel_file.name}")
+    log_activity(f"Raw excel file uploaded: {excel_file.name}")
 
 if video_file and excel_file and not st.session_state.processing_done:
     # Create temporary files
@@ -47,6 +57,8 @@ if video_file and excel_file and not st.session_state.processing_done:
         excel_path = temp_excel.name
 
     try:
+        start_time = time.time()  # Record the start time
+
         # 1080 DATA PROCESSING
         df_1080_unfiltered, capturing_length_1080, total_frames_1080, fps_10802, fps_1080 = read_1080(excel_path)
         df_1080_filtered = filter_1080_data(df_1080_unfiltered, fps_1080, 10)
@@ -56,7 +68,7 @@ if video_file and excel_file and not st.session_state.processing_done:
         df_landmarks_filtered = filter_landmarks(df_landmarks_raw, fps_video, 5)
         df_joint_angles = calculate_joint_angles(df_landmarks_filtered)
         # plot the joint angles use the right knee as an example
-        st.line_chart(df_joint_angles['right_hip_angle'])
+        #st.line_chart(df_joint_angles['right_hip_angle'])
         df_landmarks_filtered = calculate_com(df_landmarks_filtered)
         df_velocity = df_landmarks_filtered.diff() * fps_video
         df_acceleration = df_velocity.diff() * fps_video
@@ -103,7 +115,11 @@ if video_file and excel_file and not st.session_state.processing_done:
             file_name="processed_video.mp4",
             mime="video/mp4"
         )
-        log_activity("Processed video downloaded")
+        log_activity("Processed video downloaded!")
+        
+        end_time = time.time()  # Record the end time
+        processing_time = end_time - start_time  # Calculate the processing duration
+        log_activity(f"Processing time: {processing_time:.2f} seconds")
         
         # Mark processing as done
         st.session_state.processing_done = True
