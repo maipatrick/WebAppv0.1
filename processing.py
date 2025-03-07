@@ -224,3 +224,47 @@ def parse_trc_file(trc_content):
                 continue
     
     return pd.DataFrame(data, columns=columns)
+
+def create_dummy_joint_angle_csv(file_path):
+    """
+    Create a dummy CSV file with time series data for different joint angles.
+
+    :param file_path: The path where the dummy CSV file will be saved.
+    """
+    # Define the columns for joint angles
+    columns = ["time", "ankle_angle_L", "ankle_angle_R", "hip_angle_L", "hip_angle_R", "knee_angle_L", "knee_angle_R"]
+    
+    # Generate time series data
+    time_series = np.linspace(0, 10, num=100)  # 100 time points from 0 to 10 seconds
+    data = {
+        "time": time_series,
+        "ankle_angle_L": np.sin(time_series),
+        "ankle_angle_R": np.cos(time_series),
+        "hip_angle_L": np.sin(time_series + 1),
+        "hip_angle_R": np.cos(time_series + 1),
+        "knee_angle_L": np.sin(time_series + 2),
+        "knee_angle_R": np.cos(time_series + 2),
+    }
+    
+    # Create a DataFrame
+    df = pd.DataFrame(data)
+    
+    # Save the DataFrame to a CSV file
+    df.to_csv(file_path, index=False)
+    print(f"Dummy joint angle CSV file created at: {file_path}")
+
+def read_joint_angle_csv(file_path):
+    """
+    Read the joint angle CSV file into a DataFrame.
+
+    :param file_path: The path to the joint angle CSV file.
+    :return: A DataFrame containing the joint angle data.
+    """
+    df = pd.read_csv(file_path)
+    return df
+
+# Example usage
+dummy_csv_path = "/Users/emilcarlsen/Documents/Python/MOCA/WebAppv0.1/dummy_joint_angles.csv"
+create_dummy_joint_angle_csv(dummy_csv_path)
+df_joint_angles = read_joint_angle_csv(dummy_csv_path)
+print(df_joint_angles.head())
