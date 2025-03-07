@@ -15,6 +15,10 @@ def log_activity(activity):
 
 st.title("Video and Excel File Processing App")
 
+# Initialize session state
+if 'processing_done' not in st.session_state:
+    st.session_state.processing_done = False
+
 # Upload video file
 video_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi"])
 if video_file:
@@ -25,7 +29,7 @@ excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
 if excel_file:
     log_activity(f"Excel file uploaded: {excel_file.name}")
 
-if video_file and excel_file:
+if video_file and excel_file and not st.session_state.processing_done:
     # Create temporary files
     with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
         temp_video.write(video_file.read())
@@ -93,6 +97,9 @@ if video_file and excel_file:
             mime="video/mp4"
         )
         log_activity("Processed video downloaded")
+        
+        # Mark processing as done
+        st.session_state.processing_done = True
         
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
