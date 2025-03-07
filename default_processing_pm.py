@@ -6,6 +6,53 @@ from scipy.signal import correlate
 
 
 
+def calculate_joint_angles(df_landmarks_filtered):
+    def calculate_angle(a, b, c):
+        """
+        Calculate the angle between three points.
+        a, b, c are tuples representing the (x, y) coordinates of the points.
+        """
+        ba = np.array(a) - np.array(b)
+        bc = np.array(c) - np.array(b)
+        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+        angle = np.arccos(cosine_angle)
+        return np.degrees(angle)
+
+    # Define the joints to calculate angles for
+    joint_pairs = [
+        ('left_shoulder', 'left_elbow', 'left_wrist'),
+        ('right_shoulder', 'right_elbow', 'right_wrist'),
+        ('left_hip', 'left_knee', 'left_ankle'),
+        ('right_hip', 'right_knee', 'right_ankle'),
+        ('left_shoulder', 'left_hip', 'left_knee'),
+        ('right_shoulder', 'right_hip', 'right_knee')
+    ]
+
+    # Initialize a list to store the joint angles
+    joint_angles_list = []
+
+    # Iterate over each frame
+    for index, row in df_landmarks_filtered.iterrows():
+        frame_angles = {'frame': row['frame']}
+        
+        # Calculate the angles for each joint pair
+        for joint_pair in joint_pairs:
+            joint1, joint2, joint3 = joint_pair
+            point1 = (row[f'{joint1}_x'], row[f'{joint1}_y'])
+            point2 = (row[f'{joint2}_x'], row[f'{joint2}_y'])
+            point3 = (row[f'{joint3}_x'], row[f'{joint3}_y'])
+            angle = calculate_angle(point1, point2, point3)
+            frame_angles[f'{joint2}_angle'] = angle
+        
+        joint_angles_list.append(frame_angles)
+
+    # Convert the list of joint angles to a DataFrame
+    df_joint_angles = pd.DataFrame(joint_angles_list)
+
+    return df_joint_angles
+
+
+
 def sync_signals2(signal_a, signal_b):
     # Ensure both signals are numpy arrays
     signal_a = signal_a.values if isinstance(signal_a, pd.Series) else np.array(signal_a)
