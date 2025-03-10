@@ -69,6 +69,7 @@ if video_file and excel_file and not st.session_state.processing_done:
         df_joint_angles = calculate_joint_angles(df_landmarks_filtered)
         # plot the joint angles use the right knee as an example
         #st.line_chart(df_joint_angles['right_hip_angle'])
+        
         df_landmarks_filtered = calculate_com(df_landmarks_filtered)
         df_velocity = df_landmarks_filtered.diff() * fps_video
         df_acceleration = df_velocity.diff() * fps_video

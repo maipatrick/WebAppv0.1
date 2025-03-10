@@ -40,3 +40,28 @@
 2025-03-07 09:45:49,553 - Raw excel file uploaded: 4. L_Lat_shuffle.xlsx - Country: NO
 2025-03-07 09:45:50,493 - Raw video file uploaded: 4. L_Lat_shuffle.mp4 - Country: NO
 2025-03-07 09:45:50,862 - Raw excel file uploaded: 4. L_Lat_shuffle.xlsx - Country: NO
+2025-03-10 08:44:04,558 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:44:08,233 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:44:08,850 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 08:44:20,555 - Error occurred: `ylabel()` is not a valid Streamlit command. - Country: NO
+2025-03-10 08:46:40,201 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:46:42,520 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:46:42,868 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 08:50:47,543 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:50:50,278 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:50:50,613 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 08:51:00,635 - Error occurred: `ylabel()` is not a valid Streamlit command. - Country: NO
+2025-03-10 08:51:56,349 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:51:59,809 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 08:52:00,179 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 14:41:06,423 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 14:41:10,286 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 14:41:10,899 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 14:42:44,347 - Processed video displayed and ready for download! - Country: NO
+2025-03-10 14:42:44,622 - Processing time: 93.43 seconds - Country: NO
+2025-03-10 14:43:05,941 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 14:43:06,222 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 14:45:37,557 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 14:45:40,797 - Raw video file uploaded: 3. L_Lat_shuffle_2.mp4 - Country: NO
+2025-03-10 14:45:41,086 - Raw excel file uploaded: 3. L_Lat_shuffle_2.xlsx - Country: NO
+2025-03-10 14:47:09,056 - Error occurred: name 'cleanup_old_temp_file' is not defined - Country: NO
