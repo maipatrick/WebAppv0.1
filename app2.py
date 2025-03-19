@@ -1,5 +1,5 @@
 import streamlit as st
-from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit,process_and_overlay_videoStreamlit_force
+from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit,process_and_overlay_videoStreamlit_force, process_and_overlay_videoStreamlit_None
 from d1080_fun_pm import read_1080, filter_1080_data
 from default_processing_pm import pad_df, sync_signals, upsample_signal, sync_signals22, downsample_df, replace_non_finite_valuesDF, calculate_joint_angles, pad_sync_signal
 from dforce_fun_pm import read_jump_excel, calculate_com_position, calculate_jump_height
@@ -32,38 +32,40 @@ st.set_page_config(
 )
 
 st.title("Video and Excel File Processing App")
-
+st.image("https://i.ibb.co/zVStNZg7/logo.png", width=200)
 # Initialize session state
 if 'processing_done' not in st.session_state:
     st.session_state.processing_done = False
 
 # Upload video file
-video_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi"])
+video_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi"], accept_multiple_files=False, key="video", help="Supported formats: mp4, mov, avi")
 if video_file:
     log_activity(f"Raw video file uploaded: {video_file.name}")
-
-# Upload Excel file
-excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"])
-if excel_file:
-    log_activity(f"Raw excel file uploaded: {excel_file.name}")
-
-# Add a dropdown menu
+# Dropdown to select the source of the data
 option = st.selectbox(
     "Source of the data",
-    ("1080", "Force plate Jumps", "TBD")
-)
+    ("1080", "Force plate Jumps", "None", "TBD"), index=2)
+# if options force and 1080 are selected, upload the excel file
+if option == "Force plate Jumps" or option == "1080":
+    # Upload Excel file
+    excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"], accept_multiple_files=False)
+    if excel_file:
+        log_activity(f"Raw excel file uploaded: {excel_file.name}")
+
 
 # Show the "Process" button only when both files are uploaded
-if video_file and excel_file:
+if (video_file and option == "None") or (video_file and option != "None" and excel_file):
     if st.button("Process"):
         # Create temporary files
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_video:
             temp_video.write(video_file.read())
             video_path = temp_video.name
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_excel:
-            temp_excel.write(excel_file.read())
-            excel_path = temp_excel.name
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_excel:
+                temp_excel.write(excel_file.read())
+                excel_path = temp_excel.name
+        except Exception as e:
+            pass
 
         try:
             start_time = time.time()  # Record the start time
@@ -79,6 +81,8 @@ if video_file and excel_file:
                 df_1080_unfiltered, capturing_length_1080, total_frames_1080, fps_10802, fps_1080 = read_1080(excel_path)
                 df_1080_filtered = filter_1080_data(df_1080_unfiltered, fps_1080, 10)
                 df_1080_filtered['Speed [m/s]'] = df_1080_filtered['Speed [m/s]'].abs()
+            elif option == "None":
+                pass
 
             # VIDEO PROCESSING
             df_landmarks_raw, fps_video, capturing_length_video, total_frames_video = process_video(video_path, show_pose=1)
@@ -143,6 +147,9 @@ if video_file and excel_file:
                 
                 # Process video and get video data
                 video_data = process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, padded_df_distance)
+
+            elif option == "None":
+                video_data = process_and_overlay_videoStreamlit_None(video_path, df_landmarks_filtered)
 
 
             # Create download button

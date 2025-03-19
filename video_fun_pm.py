@@ -17,6 +17,112 @@ import tempfile
 import streamlit as st
 
 
+import cv2
+import tempfile
+import streamlit as st
+import os
+
+# Define the segments and their respective weights
+segmentspairs = [
+    ('left_shoulder', 'right_shoulder'),
+    ('left_shoulder', 'left_elbow'),
+    ('right_shoulder', 'right_elbow'),
+    ('left_elbow', 'left_wrist'),
+    ('right_elbow', 'right_wrist'),
+    ('left_shoulder', 'left_hip'),
+    ('right_shoulder', 'right_hip'),
+    ('left_hip', 'left_knee'),
+    ('right_hip', 'right_knee'),
+    ('left_knee', 'left_ankle'),
+    ('right_knee', 'right_ankle'),
+    ('left_heel', 'left_foot_index'),
+    ('right_heel', 'right_foot_index'),
+    ('left_hip', 'right_hip')
+]
+
+def process_and_overlay_videoStreamlit_None(video_path, df_landmarks_filtered):
+    # Create a progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    # Create a temporary directory for processing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Open the video
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise Exception(f"Error opening video file: {video_path}")
+
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # Use MPEG4 codec
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        temp_output = os.path.join(temp_dir, 'temp_output.mp4')
+        out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+
+        if not out.isOpened():
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            temp_output = os.path.join(temp_dir, 'temp_output.avi')
+            out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+
+            if not out.isOpened():
+                raise Exception("Could not initialize video writer. No compatible codec found.")
+
+        frame_count = 0
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Update progress
+            progress = frame_count / total_frames
+            progress_bar.progress(progress)
+            status_text.text(f"{round((frame_count / total_frames) * 100)}%")
+
+            # Get the landmarks for the current frame, skipping the first column (frame count)
+            landmarks = df_landmarks_filtered.iloc[frame_count, 1:]
+
+            # Plot landmarks on the frame
+            for i in range(0, len(landmarks), 2):
+                x = int(landmarks[i] * width)
+                y = int(landmarks[i + 1] * height)
+                cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)
+
+            # Draw lines between the segments
+            for segment in segmentspairs:
+                landmark1, landmark2 = segment
+                x1 = int(df_landmarks_filtered[f'{landmark1}_x'].iloc[frame_count] * width)
+                y1 = int(df_landmarks_filtered[f'{landmark1}_y'].iloc[frame_count] * height)
+                x2 = int(df_landmarks_filtered[f'{landmark2}_x'].iloc[frame_count] * width)
+                y2 = int(df_landmarks_filtered[f'{landmark2}_y'].iloc[frame_count] * height)
+                cv2.line(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+
+            # Write the frame
+            out.write(frame)
+            frame_count += 1
+
+        # Clean up
+        cap.release()
+        out.release()
+
+        # Read the final video file
+        with open(temp_output, 'rb') as f:
+            video_data = f.read()
+
+        # Clear the progress bar and status text
+        progress_bar.empty()
+        status_text.empty()
+
+        return video_data
+
+
+
+
+
+
 def process_and_overlay_videoStreamlit_force(video_path, sync_a, total_time):
     # Create a progress bar
     progress_bar = st.progress(0)
@@ -527,7 +633,25 @@ segments = [
     ('right_knee', 'right_ankle', 0.10),
     ('left_elbow', 'left_wrist', 0.05),
     ('right_elbow', 'right_wrist', 0.05)
-]
+] 
+
+# segments = [
+#     ('head', 'neck', 0.08),  # Head and neck (~8%)
+#     ('left_shoulder', 'right_shoulder', 0.15),  # Thorax (~15%)
+#     ('left_hip', 'right_hip', 0.14),  # Pelvis (~14%)
+#     ('left_shoulder', 'left_hip', 0.11),  # Left torso half (~11%)
+#     ('right_shoulder', 'right_hip', 0.11),  # Right torso half (~11%)
+#     ('left_hip', 'left_knee', 0.10),  # Left thigh (~10%)
+#     ('right_hip', 'right_knee', 0.10),  # Right thigh (~10%)
+#     ('left_knee', 'left_ankle', 0.05),  # Left lower leg (~5%)
+#     ('right_knee', 'right_ankle', 0.05),  # Right lower leg (~5%)
+#     ('left_elbow', 'left_wrist', 0.016),  # Left forearm (~1.6%)
+#     ('right_elbow', 'right_wrist', 0.016),  # Right forearm (~1.6%)
+#     ('left_shoulder', 'left_elbow', 0.028),  # Left upper arm (~2.8%)
+#     ('right_shoulder', 'right_elbow', 0.028),  # Right upper arm (~2.8%)
+#     ('left_ankle', 'left_foot', 0.014),  # Left foot (~1.4%)
+#     ('right_ankle', 'right_foot', 0.014)  # Right foot (~1.4%)
+# ]
 
 def calculate_segment_midpoints(df_landmarks_filtered):
     # Initialize lists to store the segment midpoints
