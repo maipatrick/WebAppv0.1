@@ -81,10 +81,11 @@ def process_and_overlay_videoStreamlit_None(video_path, df_landmarks_filtered):
             progress = frame_count / total_frames
             progress_bar.progress(progress)
             status_text.text(f"{round((frame_count / total_frames) * 100)}%")
-
+            if frame_count == 706:
+                a = 2
             # Get the landmarks for the current frame, skipping the first column (frame count)
             landmarks = df_landmarks_filtered.iloc[frame_count, 1:]
-
+            #TODO if not in the image it fails
             # Plot landmarks on the frame
             for i in range(0, len(landmarks), 2):
                 x = int(landmarks[i] * width)
