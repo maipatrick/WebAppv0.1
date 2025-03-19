@@ -81,9 +81,10 @@ def process_and_overlay_videoStreamlit_None(video_path, df_landmarks_filtered):
             progress = frame_count / total_frames
             progress_bar.progress(progress)
             status_text.text(f"{round((frame_count / total_frames) * 100)}%")
-            if frame_count == 706:
-                a = 2
+            # if frame_count == 706:
+            #     a = 2
             # Get the landmarks for the current frame, skipping the first column (frame count)
+            
             landmarks = df_landmarks_filtered.iloc[frame_count, 1:]
             #TODO if not in the image it fails
             # Plot landmarks on the frame
@@ -100,6 +101,7 @@ def process_and_overlay_videoStreamlit_None(video_path, df_landmarks_filtered):
                 x2 = int(df_landmarks_filtered[f'{landmark2}_x'].iloc[frame_count] * width)
                 y2 = int(df_landmarks_filtered[f'{landmark2}_y'].iloc[frame_count] * height)
                 cv2.line(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+            
 
             # Write the frame
             out.write(frame)
@@ -553,6 +555,81 @@ def filter_landmarks(df_landmarks_raw, fps_video, cutoff_frequency):
     return df_filtered
 
 def process_video(video_path, show_pose=1):
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Load the video file
+    cap = cv2.VideoCapture(video_path)
+
+    # Initialize MediaPipe Pose
+    mp_pose = mp.solutions.pose
+    pose = mp_pose.Pose()
+    mp_drawing = mp.solutions.drawing_utils
+
+    # Get the total number of frames in the video
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    # Get the frames per second (fps) of the video
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate the capturing length in seconds
+    capturing_length = total_frames / fps
+
+    # Initialize a list to store the landmarks data
+    landmarks_data = []
+
+    # Process the video frame by frame
+    frame_count = 0
+    
+    status_text.text("Processing video frames...")
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Convert the frame to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Perform pose estimation
+        results = pose.process(frame_rgb)
+
+        # Extract and store landmarks data if available
+        frame_data = {'frame': frame_count}
+        if results.pose_landmarks:
+            for idx, landmark in enumerate(results.pose_landmarks.landmark):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = landmark.x
+                frame_data[f'{landmark_name}_y'] = landmark.y
+        else:
+            for idx in range(len(mp_pose.PoseLandmark)):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = float('nan')
+                frame_data[f'{landmark_name}_y'] = float('nan')
+        landmarks_data.append(frame_data)
+
+        # Update the progress
+        progress = frame_count / total_frames
+        progress_bar.progress(progress)
+        status_text.text(f"Processing frame {frame_count + 1}/{total_frames}")
+        
+        # Update the frame count
+        frame_count += 1
+
+    # Clean up
+    cap.release()
+
+    # Clear progress indicators
+    progress_bar.empty()
+    status_text.empty()
+
+    # Convert the landmarks data to a DataFrame
+    df_landmarks = pd.DataFrame(landmarks_data)
+
+    return df_landmarks, fps, capturing_length, total_frames
+
+def process_video_woNaNs(video_path, show_pose=1):
     # Create progress indicators
     progress_bar = st.progress(0)
     status_text = st.empty()

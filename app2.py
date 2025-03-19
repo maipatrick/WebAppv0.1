@@ -65,7 +65,7 @@ with tab1:
         if excel_file:
             log_activity(f"Raw excel file uploaded: {excel_file.name}")
 
-    # Show the "Process" button only when both files are uploaded
+    # Show the "Process" button only under certain conditions
     if (video_file and option == "None") or (video_file and option != "None" and excel_file):
         if st.button("Process"):
             # Create temporary files
@@ -98,16 +98,24 @@ with tab1:
 
                 # VIDEO PROCESSING
                 df_landmarks_raw, fps_video, capturing_length_video, total_frames_video = process_video(video_path, show_pose=1)
+                # user warning if the video frame rate is less than 30 fps may yields poor results
+                if fps_video <=30:
+                    st.warning("The video frame rate is less than 30 fps. The processing may not be accurate. Consider using a video with a higher frame rate.")
+                # fill nans in the df_landmarks_raw with the cloest value within that coloumn
+                df_landmarks_raw = df_landmarks_raw.fillna(method='ffill')
+                # filter the landmarks
                 df_landmarks_filtered = filter_landmarks(df_landmarks_raw, fps_video, 5)
+                # calculate the joint angles
                 df_joint_angles = calculate_joint_angles(df_landmarks_filtered)
-                
+                #calculate the center of mass
                 df_landmarks_filtered = calculate_com(df_landmarks_filtered)
+                # calculate the velocity
                 df_velocity = df_landmarks_filtered.diff() * fps_video
+                # calculate the acceleration
                 df_acceleration = df_velocity.diff() * fps_video
-
+                # TODO is this a problem?
                 df_velocity['com_x'] = df_velocity['com_x'].abs()
                 
-
                 if option == "Force plate Jumps":
                     com_position = com_position*-1
                     df_landmarks_filtered['com_y'] = df_landmarks_filtered['com_y']-df_landmarks_filtered['com_y'].iloc[0]
@@ -213,7 +221,7 @@ with tab2:
 st.sidebar.header("Contact Us")
 contact_email = "patrickm@nih.no"
 subject = "WebApp"
-body = "Please describe the error and attach the files so that we can debug."
+body = "Please describe the error and attach the files so that we can debug 🐛."
 mailto_link = f"mailto:{contact_email}?subject={subject}&body={body}"
 
 if st.sidebar.button("Contact Us"):
