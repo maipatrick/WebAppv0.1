@@ -16,9 +16,158 @@ from matplotlib.patches import Rectangle
 import tempfile
 import streamlit as st
 
-import streamlit as st
 
-import streamlit as st
+def process_and_overlay_videoStreamlit_force(video_path, sync_a, total_time):
+    # Create a progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    # Create a temporary directory for processing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Open the video
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # Ensure video length matches sync_a
+        if total_frames != len(sync_a):
+            raise ValueError("Mismatch: Video frames and force signal length must be equal.")
+
+        # Use MPEG4 codec
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        temp_output = temp_dir + '/temp_output.mp4'
+        out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+
+        if not out.isOpened():
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            temp_output = temp_dir + '/temp_output.avi'
+            out = cv2.VideoWriter(temp_output, fourcc, fps, (width, height))
+
+            if not out.isOpened():
+                raise Exception("Could not initialize video writer. No compatible codec found.")
+
+        # Set style for better visualization
+        plt.style.use('dark_background')
+
+        # Calculate the time per frame
+        time_per_frame = total_time / total_frames
+        frame_count = 0
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Update progress
+            progress = frame_count / total_frames
+            progress_bar.progress(progress)
+            status_text.text(f"{round((frame_count / total_frames)*100)}%")
+
+            # Create and save plot
+            temp_plot_path = temp_dir + '/temp_plot.png'
+            create_force_plot(time_values=[i * time_per_frame for i in range(frame_count + 1)],
+                              sync_a_slice=sync_a[:frame_count + 1],
+                              total_time=total_time,
+                              sync_a=sync_a,
+                              output_path=temp_plot_path)
+
+            # Overlay plot on frame
+            plot_img = cv2.imread(temp_plot_path, cv2.IMREAD_UNCHANGED)
+            if plot_img is not None:
+                overlay_plot_on_frame(frame, plot_img, width, height)
+
+            # Write the frame
+            out.write(frame)
+            frame_count += 1
+
+        # Clean up
+        cap.release()
+        out.release()
+
+        # Read the final video file
+        with open(temp_output, 'rb') as f:
+            video_data = f.read()
+
+        # Clear the progress bar and status text
+        progress_bar.empty()
+        status_text.empty()
+
+        return video_data
+
+def create_force_plot(time_values, sync_a_slice, total_time, sync_a, output_path):
+    plt.figure(figsize=(8, 4), facecolor='none')
+    ax = plt.gca()
+    ax.set_facecolor('none')
+
+    # Plot Force signal
+    ax.plot(time_values, sync_a_slice, 
+             color='red',
+             label='Force (N)',
+             linewidth=3,
+             alpha=0.8)
+
+    # Add gradient fill
+    ax.fill_between(time_values, sync_a_slice,
+                    alpha=0.2, color='red')
+
+    # Customize plot appearance
+    ax.set_xlabel('Time [s]', color='white', fontsize=15, fontweight='bold', labelpad=10)
+    ax.set_ylabel('Force [N]', color='white', fontsize=15, fontweight='bold', labelpad=10)
+    ax.grid(True, alpha=0.2, linestyle='--', color='white')
+
+    # Style axes
+    for spine in ax.spines.values():
+        spine.set_color('white')
+    ax.tick_params(colors='white', grid_color='white')
+
+    # Add legend
+    legend = ax.legend(facecolor='none', edgecolor='none', loc='upper right', fontsize=15)
+    plt.setp(legend.get_texts(), color='white')
+
+    # Set plot limits
+    ax.set_xlim(0, total_time)
+    ax.set_ylim(sync_a.min() - 0.1, sync_a.max() + 0.1)
+
+    # Add background panel
+    ax.add_patch(Rectangle((0, 0), 1, 1, 
+                         transform=ax.transAxes,
+                         facecolor='black',
+                         alpha=0.7,
+                         zorder=-1))
+
+    # Save plot
+    plt.savefig(output_path, 
+                transparent=True, 
+                bbox_inches='tight', 
+                pad_inches=0.2,
+                dpi=300)
+    plt.close()
+
+def overlay_plot_on_frame(frame, plot_img, width, height):
+    # Resize plot
+    plot_height = 250
+    plot_width = 500
+    plot_img = cv2.resize(plot_img, (plot_width, plot_height))
+
+    # Create mask
+    if plot_img.shape[2] == 4:
+        mask = plot_img[:, :, 3] / 255.0
+        mask = np.expand_dims(mask, axis=-1)
+        plot_img = plot_img[:, :, :3]
+    else:
+        mask = np.ones((plot_height, plot_width, 1))
+
+    # Position plot
+    y_offset = 30
+    x_offset = width - plot_width - 30
+
+    # Overlay plot
+    roi = frame[y_offset:y_offset+plot_height, x_offset:x_offset+plot_width]
+    frame[y_offset:y_offset+plot_height, x_offset:x_offset+plot_width] = (
+        roi * (1 - mask) + plot_img * mask
+    ).astype(np.uint8)
 
 def process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, df_distance):
     # Create a progress bar
@@ -295,7 +444,6 @@ def filter_landmarks(df_landmarks_raw, fps_video, cutoff_frequency):
             df_filtered[column] = df_landmarks_raw[column]
 
     return df_filtered
-
 
 def process_video(video_path, show_pose=1):
     # Create progress indicators

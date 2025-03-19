@@ -1,10 +1,34 @@
-# TODO move to processing functions
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import correlate
 
-
+def pad_sync_signal(sync_a, lag, cut_index, total_frames_video):
+    """
+    Pads the sync_a signal to make it as long as total_frames_video using the lag and cut_index.
+    
+    Parameters:
+    sync_a (pd.Series): The original sync_a signal.
+    lag (int): The lag value.
+    cut_index (int): The cut index value.
+    total_frames_video (int): The total number of frames in the video.
+    
+    Returns:
+    np.ndarray: The padded sync_a signal.
+    """
+    # Initialize the final sync_a array with the length of total_frames_video
+    final_sync_a = np.zeros(total_frames_video)
+    
+    # Fill the initial part of the array (from 0 to lag) with the first value of sync_a
+    final_sync_a[:lag] = sync_a.iloc[0]
+    
+    # Copy the values from sync_a to the new array starting from lag to cut_index
+    final_sync_a[lag:lag + len(sync_a)] = sync_a
+    
+    # Fill the remaining part of the array (from cut_index to total_frames_video) with the last value of sync_a
+    final_sync_a[lag + len(sync_a):] = sync_a.iloc[-1]
+    
+    return final_sync_a
 
 def calculate_joint_angles(df_landmarks_filtered):
     def calculate_angle(a, b, c):
@@ -50,8 +74,6 @@ def calculate_joint_angles(df_landmarks_filtered):
     df_joint_angles = pd.DataFrame(joint_angles_list)
 
     return df_joint_angles
-
-
 
 def sync_signals2(signal_a, signal_b):
     # Ensure both signals are numpy arrays
@@ -144,7 +166,6 @@ def pad_df(df, signal_length, lag, cut_index):
     padded_df = pd.concat([start_padding, df, end_padding], ignore_index=True)
     
     return padded_df
-
 
 def downsample_df(df, original_freq, target_freq):
     downsample_factor = int(original_freq / target_freq)
