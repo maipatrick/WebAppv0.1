@@ -15,12 +15,14 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
 import tempfile
 import streamlit as st
-
+from scipy.signal import savgol_filter
 
 import cv2
 import tempfile
 import streamlit as st
 import os
+
+from rtmlib import PoseTracker, BodyWithFeet
 
 # Define the segments and their respective weights
 segmentspairs = [
@@ -553,6 +555,362 @@ def filter_landmarks(df_landmarks_raw, fps_video, cutoff_frequency):
             df_filtered[column] = df_landmarks_raw[column]
 
     return df_filtered
+
+
+
+
+def filter_landmarks_new(df: pd.DataFrame, window_length: int = 7, polyorder: int = 2) -> pd.DataFrame:
+    """
+    Applies smoothing to x and y columns in the landmark DataFrame.
+    
+    Parameters:
+        df (pd.DataFrame): Raw landmark DataFrame (output of process_video_blured_new)
+        window_length (int): Length of the filter window (must be odd and > polyorder)
+        polyorder (int): Order of the polynomial to fit
+        
+    Returns:
+        pd.DataFrame: Smoothed landmark DataFrame with same structure
+    """
+    df_filtered = df.copy()
+    
+    # Ensure window length is valid
+    if window_length >= len(df):
+        window_length = len(df) - 1 if len(df) % 2 == 0 else len(df)
+    if window_length < 3:
+        return df  # Not enough data to smooth
+
+    for col in df.columns:
+        if '_x' in col or '_y' in col:
+            # Interpolate missing values before smoothing
+            series = df_filtered[col].interpolate(method='linear', limit_direction='both')
+            try:
+                smoothed = savgol_filter(series, window_length=window_length, polyorder=polyorder)
+                df_filtered[col] = smoothed
+            except Exception:
+                # In case of error, fallback to original/interpolated
+                df_filtered[col] = series
+
+    return df_filtered
+
+
+
+
+def pose_estimation_rmt_pose(video_path):
+     # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    #video_path = Path(video_path)
+    #output_path = video_path.with_name(video_path.stem + '_output.mp4')
+
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise FileNotFoundError(f"Could not open video: {video_path}")
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_number_of_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    caputure_length = total_number_of_frames *(1/ fps)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    #out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+
+    # Set up pose tracker  ('lightweight', 'balanced', 'performance') 
+    pose_tracker = PoseTracker(
+        BodyWithFeet,
+        det_frequency=1,
+        mode="balanced",
+        backend="onnxruntime",
+        device="cuda" if cv2.cuda.getCudaEnabledDeviceCount() > 0 else "cpu",
+        tracking=True,
+        to_openpose=False
+    )
+
+    # Get keypoints structure
+    model = BodyWithFeet
+    #keypoints_ids = [node.id for _, _, node in RenderTree(model) if node.id is not None]
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_number = cap.get(cv2.CAP_PROP_POS_FRAMES)
+        keypoints_all, scores_all = pose_tracker(frame)
+        
+        for keypoints in keypoints_all:
+            X = keypoints[:, 0]
+            Y = keypoints[:, 1]
+            # draw circles with cv2.circle
+            for i, (x, y) in enumerate(zip(X, Y)):
+                cv2.circle(frame, (int(x), int(y)), 4, (0, 255, 0), -1)
+            #draw_skel(frame, [X], [Y], model)
+            #draw_keypts(frame, [X], [Y], scores_all, cmap_str='RdYlGn')
+        #print(f"\rProcessing frame {frame_number}/{total_number_of_frames}...", end="")
+        # Update the progress
+        progress = frame_number / total_number_of_frames
+        progress_bar.progress(progress)
+        status_text.text(f"Processing frame {int(frame_number) + 1}/{total_number_of_frames}")
+        #out.write(frame)
+
+    cap.release()
+    #out.release()
+    #print(f"✅ Output saved to: {output_path}")
+    return fps, total_number_of_frames, caputure_length ,video_path 
+
+def process_video_blured_new(video_path, show_pose=1, blur_faces=False):
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Load the video file
+    cap = cv2.VideoCapture(video_path)
+    min_detection_confidence = 0.6
+    min_tracking_confidence = 0.6
+    # Initialize MediaPipe Pose and Face Detection
+    mp_pose = mp.solutions.pose
+    # 🔧 2. Enable landmark smoothing for video stability
+    # MediaPipe has an optional smoothing filter that reduces jitter between frames — especially useful when dealing with subtle pose changes or motion blur.
+
+    # ✅ Make sure this is set:
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=2,
+        smooth_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+    #pose = mp_pose.Pose(min_detection_confidence=min_detection_confidence, min_tracking_confidence=min_tracking_confidence)
+
+    mp_drawing = mp.solutions.drawing_utils
+    mp_face_detection = mp.solutions.face_detection
+    face_detection = mp_face_detection.FaceDetection()
+
+    # Get the total number of frames in the video
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    # Get the frames per second (fps) of the video
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate the capturing length in seconds
+    capturing_length = total_frames / fps
+
+    # Initialize a list to store the landmarks data
+    landmarks_data = []
+
+    # Prepare video writer for output video
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') #mp4v avc1
+    output_video_path = os.path.join(tempfile.gettempdir(), 'processed_video.mp4')
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    # Process the video frame by frame
+    frame_count = 0
+    
+    status_text.text("Processing video frames...")
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Preprocess the frame (e.g., histogram equalization)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #frame = cv2.equalizeHist(frame)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+        # Convert the frame to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Perform pose estimation
+        results = pose.process(frame_rgb)
+
+        # Extract and store landmarks data if available
+        frame_data = {'frame': frame_count}
+        if results.pose_landmarks:
+            for idx, landmark in enumerate(results.pose_landmarks.landmark):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = landmark.x
+                frame_data[f'{landmark_name}_y'] = landmark.y
+            # Draw the pose landmarks on the frame
+            #mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        else:
+            for idx in range(len(mp_pose.PoseLandmark)):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = float('nan')
+                frame_data[f'{landmark_name}_y'] = float('nan')
+        landmarks_data.append(frame_data)
+
+        # Blur faces if blur_faces is True
+        if blur_faces and results.pose_landmarks:
+            head_landmarks = [
+                mp_pose.PoseLandmark.NOSE,
+                mp_pose.PoseLandmark.LEFT_EYE_INNER,
+                mp_pose.PoseLandmark.LEFT_EYE,
+                mp_pose.PoseLandmark.LEFT_EYE_OUTER,
+                mp_pose.PoseLandmark.RIGHT_EYE_INNER,
+                mp_pose.PoseLandmark.RIGHT_EYE,
+                mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
+                mp_pose.PoseLandmark.LEFT_EAR,
+                mp_pose.PoseLandmark.RIGHT_EAR,
+                mp_pose.PoseLandmark.MOUTH_LEFT,
+                mp_pose.PoseLandmark.MOUTH_RIGHT
+            ]
+            for landmark in head_landmarks:
+                x = int(results.pose_landmarks.landmark[landmark].x * width)
+                y = int(results.pose_landmarks.landmark[landmark].y * height)
+                cv2.circle(frame, (x, y), 30, (0, 0, 0), -1)
+
+        # Write the frame to the output video
+        out.write(frame)
+
+        # Update the progress
+        progress = frame_count / total_frames
+        progress_bar.progress(progress)
+        status_text.text(f"Processing frame {frame_count + 1}/{total_frames}")
+        
+        # Update the frame count
+        frame_count += 1
+
+    # Clean up
+    cap.release()
+    out.release()
+
+    # Clear progress indicators
+    progress_bar.empty()
+    status_text.empty()
+
+    # Convert the landmarks data to a DataFrame
+    df_landmarks = pd.DataFrame(landmarks_data)
+
+    return df_landmarks, fps, capturing_length, total_frames, output_video_path
+
+
+def process_video_blured(video_path, show_pose=1, blur_faces=False):
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    # Load the video file
+    cap = cv2.VideoCapture(video_path)
+    min_detection_confidence = 0.3
+    min_tracking_confidence = 0.3
+    # Initialize MediaPipe Pose and Face Detection
+    mp_pose = mp.solutions.pose
+    # 🔧 2. Enable landmark smoothing for video stability
+    # MediaPipe has an optional smoothing filter that reduces jitter between frames — especially useful when dealing with subtle pose changes or motion blur.
+
+    # ✅ Make sure this is set:
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=2,
+        smooth_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+    )
+    #pose = mp_pose.Pose(min_detection_confidence=min_detection_confidence, min_tracking_confidence=min_tracking_confidence)
+
+    mp_drawing = mp.solutions.drawing_utils
+    mp_face_detection = mp.solutions.face_detection
+    face_detection = mp_face_detection.FaceDetection()
+
+    # Get the total number of frames in the video
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    # Get the frames per second (fps) of the video
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate the capturing length in seconds
+    capturing_length = total_frames / fps
+
+    # Initialize a list to store the landmarks data
+    landmarks_data = []
+
+    # Prepare video writer for output video
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') #mp4v avc1
+    output_video_path = os.path.join(tempfile.gettempdir(), 'processed_video.mp4')
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    # Process the video frame by frame
+    frame_count = 0
+    
+    status_text.text("Processing video frames...")
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Preprocess the frame (e.g., histogram equalization)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #frame = cv2.equalizeHist(frame)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+        # Convert the frame to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Perform pose estimation
+        results = pose.process(frame_rgb)
+
+        # Extract and store landmarks data if available
+        frame_data = {'frame': frame_count}
+        if results.pose_landmarks:
+            for idx, landmark in enumerate(results.pose_landmarks.landmark):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = landmark.x
+                frame_data[f'{landmark_name}_y'] = landmark.y
+        else:
+            for idx in range(len(mp_pose.PoseLandmark)):
+                landmark_name = mp_pose.PoseLandmark(idx).name.lower()
+                frame_data[f'{landmark_name}_x'] = float('nan')
+                frame_data[f'{landmark_name}_y'] = float('nan')
+        landmarks_data.append(frame_data)
+
+        # Blur faces if blur_faces is True
+        if blur_faces and results.pose_landmarks:
+            head_landmarks = [
+                mp_pose.PoseLandmark.NOSE,
+                mp_pose.PoseLandmark.LEFT_EYE_INNER,
+                mp_pose.PoseLandmark.LEFT_EYE,
+                mp_pose.PoseLandmark.LEFT_EYE_OUTER,
+                mp_pose.PoseLandmark.RIGHT_EYE_INNER,
+                mp_pose.PoseLandmark.RIGHT_EYE,
+                mp_pose.PoseLandmark.RIGHT_EYE_OUTER,
+                mp_pose.PoseLandmark.LEFT_EAR,
+                mp_pose.PoseLandmark.RIGHT_EAR,
+                mp_pose.PoseLandmark.MOUTH_LEFT,
+                mp_pose.PoseLandmark.MOUTH_RIGHT
+            ]
+            for landmark in head_landmarks:
+                x = int(results.pose_landmarks.landmark[landmark].x * width)
+                y = int(results.pose_landmarks.landmark[landmark].y * height)
+                cv2.circle(frame, (x, y), 30, (0, 0, 0), -1)
+
+        # Write the frame to the output video
+        out.write(frame)
+
+        # Update the progress
+        progress = frame_count / total_frames
+        progress_bar.progress(progress)
+        status_text.text(f"Processing frame {frame_count + 1}/{total_frames}")
+        
+        # Update the frame count
+        frame_count += 1
+
+    # Clean up
+    cap.release()
+    out.release()
+
+    # Clear progress indicators
+    progress_bar.empty()
+    status_text.empty()
+
+    # Convert the landmarks data to a DataFrame
+    df_landmarks = pd.DataFrame(landmarks_data)
+
+    return df_landmarks, fps, capturing_length, total_frames, output_video_path
 
 def process_video(video_path, show_pose=1):
     # Create progress indicators

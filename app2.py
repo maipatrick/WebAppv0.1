@@ -1,5 +1,5 @@
 import streamlit as st
-from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit,process_and_overlay_videoStreamlit_force, process_and_overlay_videoStreamlit_None
+from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit,process_and_overlay_videoStreamlit_force, process_and_overlay_videoStreamlit_None, process_video_blured, process_video_blured_new, filter_landmarks_new, pose_estimation_rmt_pose
 from d1080_fun_pm import read_1080, filter_1080_data
 from default_processing_pm import pad_df, sync_signals, upsample_signal, sync_signals22, downsample_df, replace_non_finite_valuesDF, calculate_joint_angles, pad_sync_signal
 from dforce_fun_pm import read_jump_excel, calculate_com_position, calculate_jump_height
@@ -9,6 +9,7 @@ import os
 import logging
 import requests
 import time
+import numpy as np
 
 # Configure logging
 logging.basicConfig(filename='user_activity.log', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -45,25 +46,33 @@ with tab1:
     video_file = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi"], accept_multiple_files=False, key="video", help="Supported formats: mp4, mov, avi")
     if video_file:
         log_activity(f"Raw video file uploaded: {video_file.name}")
-    # Dropdown to select the source of the data
-    option = st.selectbox(
+        # checkbox to blur faces
+        blur_facesuser = st.checkbox("Blur faces", value=True)
+        option = st.selectbox(
         "Source of the data",
         ("1080", "Force plate Jumps", "None", "TBD"), index=2)
-    if option == "None":
-        st.write("This will apply pose estimation only!")
-    elif option == "TBD":
-        st.write("This option is still under development. Please select another option.")
-    elif option == "1080":
-        st.write("This option is for 1080 data processing.")
-    elif option == "Force plate Jumps":
-        st.write("This option is for force plate jumps data processing. Note that the excel sheet should contain a Time column and a Force column.")
 
-    # if options force and 1080 are selected, upload the excel file
-    if option == "Force plate Jumps" or option == "1080":
-        # Upload Excel file
-        excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"], accept_multiple_files=False)
-        if excel_file:
-            log_activity(f"Raw excel file uploaded: {excel_file.name}")
+        # Dropdown to select the source of the data
+
+        if option == "None":
+            st.write("This will apply pose estimation only!")
+        elif option == "TBD":
+            st.write("This option is still under development. Please select another option.")
+        elif option == "1080":
+            st.write("This option is for 1080 data processing.")
+            type_of_1080 = st.selectbox(
+                "Select the type of 1080 data",
+                ("Linear Sprint", "CoD m505", "CoD m1005", "TBT"), index=0)
+            
+        elif option == "Force plate Jumps":
+            st.write("This option is for force plate jumps data processing. Note that the excel sheet should contain a Time column and a Force column.")
+
+        # if options force and 1080 are selected, upload the excel file
+        if option == "Force plate Jumps" or option == "1080":
+            # Upload Excel file
+            excel_file = st.file_uploader("Upload an Excel file", type=["xlsx"], accept_multiple_files=False)
+            if excel_file:
+                log_activity(f"Raw excel file uploaded: {excel_file.name}")
 
     # Show the "Process" button only under certain conditions
     if (video_file and option == "None") or (video_file and option != "None" and excel_file):
@@ -97,14 +106,24 @@ with tab1:
                     pass
 
                 # VIDEO PROCESSING
-                df_landmarks_raw, fps_video, capturing_length_video, total_frames_video = process_video(video_path, show_pose=1)
+                 
+            
+                # df_landmarks_raw, fps_video, capturing_length_video, total_frames_video =process_video(video_path, show_pose=1)
+                #RMT POSE ESTIMATION|
+                fps_video, total_number_of_frames, caputure_length ,video_path  = pose_estimation_rmt_pose(video_path)
+                a=2
+                #df_landmarks_raw, fps_video, capturing_length_video, total_frames_video, video_path= process_video_blured_new(video_path, show_pose=1, blur_faces=blur_facesuser)
                 # user warning if the video frame rate is less than 30 fps may yields poor results
                 if fps_video <=30:
                     st.warning("The video frame rate is less than 30 fps. The processing may not be accurate. Consider using a video with a higher frame rate.")
-                # fill nans in the df_landmarks_raw with the cloest value within that coloumn
-                df_landmarks_raw = df_landmarks_raw.fillna(method='ffill')
-                # filter the landmarks
-                df_landmarks_filtered = filter_landmarks(df_landmarks_raw, fps_video, 5)
+                # Replace inf and -inf with NaN
+                #df_landmarks_raw.replace([np.inf, -np.inf], np.nan, inplace=True)
+                # Fill NaNs with the nearest valid value (forward then backward)
+                #df_landmarks_raw = df_landmarks_raw.fillna(method='ffill').fillna(method='bfill')
+                # filter the landmarks skipe for now TODO
+                #df_landmarks_filtered = df_landmarks_raw
+                df_landmarks_filtered = filter_landmarks_new(df_landmarks_raw)
+                ####df_landmarks_filtered = filter_landmarks(df_landmarks_raw, fps_video, 5)
                 # calculate the joint angles
                 df_joint_angles = calculate_joint_angles(df_landmarks_filtered)
                 #calculate the center of mass
