@@ -12,3 +12,4 @@ rtmlib
 onnxruntime
 anytree
 tqdm
+deep_sort_realtime
