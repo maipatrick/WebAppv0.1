@@ -1368,11 +1368,11 @@ def process_video_multi_person_rstLIB(input_path: str):
     pose_tracker = PoseTracker(
         BodyWithFeet,
         det_frequency=5,
-        mode='performance',
+        mode='balanced',
         backend='onnxruntime',
         device='cpu',
         tracking=False
-    ) #balanced
+    ) #balanced performance
     #BodyWithFeet.keypoints = BodyWithFeet.keypoints[:25]  # 25 keypoints
 
     # === Deep SORT Tracker ===

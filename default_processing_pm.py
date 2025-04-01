@@ -4,14 +4,102 @@ import matplotlib.pyplot as plt
 from scipy.signal import correlate
 from scipy.signal import butter, filtfilt
 
-import numpy as np
 
 
+def calculate_time_derivative(pose_data_df, fps_video):
+    """
+    Calculates the time derivative for 'filled' and 'scaled_filled' in pose_data_df.
+    Saves the results to 'filled_vel' and 'scaled_filled_vel' for each person.
 
-import pandas as pd
-import numpy as np
+    Parameters:
+        pose_data_df (dict): Dictionary containing pose data for multiple persons.
+        fps_video (float): Frames per second of the video.
 
-import numpy as np
+    Returns:
+        dict: Updated pose_data_df with time derivatives added.
+    """
+    for person_id, data in pose_data_df.items():
+        # Process 'filled' data
+        if 'filled' in data:
+            filled_df = data['filled']
+            if isinstance(filled_df, pd.DataFrame) and not filled_df.empty:
+                # Calculate time derivative for all columns except 'frames'
+                filled_vel_df = filled_df.copy()
+                for col in filled_df.columns:
+                    if col != 'frames':  # Skip the 'frames' column
+                        filled_vel_df[col] = filled_df[col].diff() * fps_video
+
+                # Interpolate NaN values using cubic spline
+                filled_vel_df = filled_vel_df.interpolate(method='spline', order=2, axis=0).fillna(method='bfill').fillna(method='ffill')
+
+                # Save the result
+                pose_data_df[person_id]['filled_vel'] = filled_vel_df
+
+        # Process 'scaled_filled' data
+        if 'scaled_filled' in data:
+            scaled_filled_df = data['scaled_filled']
+            if isinstance(scaled_filled_df, pd.DataFrame) and not scaled_filled_df.empty:
+                # Calculate time derivative for all columns except 'frames'
+                scaled_filled_vel_df = scaled_filled_df.copy()
+                for col in scaled_filled_df.columns:
+                    if col != 'frames':  # Skip the 'frames' column
+                        scaled_filled_vel_df[col] = scaled_filled_df[col].diff() * fps_video
+
+                # Interpolate NaN values using cubic spline
+                scaled_filled_vel_df = scaled_filled_vel_df.interpolate(method='spline', order=2, axis=0).fillna(method='bfill').fillna(method='ffill')
+
+                # Save the result
+                pose_data_df[person_id]['scaled_filled_vel'] = scaled_filled_vel_df
+
+    return pose_data_df
+
+def calculate_time_derivative2(pose_data_df, fps_video):
+    """
+    Calculates the time derivative for 'filled' and 'scaled_filled' in pose_data_df.
+    Saves the results to 'filled_vel' and 'scaled_filled_vel' for each person.
+
+    Parameters:
+        pose_data_df (dict): Dictionary containing pose data for multiple persons.
+        fps_video (float): Frames per second of the video.
+
+    Returns:
+        dict: Updated pose_data_df with time derivatives added.
+    """
+    for person_id, data in pose_data_df.items():
+        # Process 'filled' data
+        if 'filled_vel' in data:
+            filled_df = data['filled_vel']
+            if isinstance(filled_df, pd.DataFrame) and not filled_df.empty:
+                # Calculate time derivative for all columns except 'frames'
+                filled_vel_df = filled_df.copy()
+                for col in filled_df.columns:
+                    if col != 'frames':  # Skip the 'frames' column
+                        filled_vel_df[col] = filled_df[col].diff() * fps_video
+
+                # Interpolate NaN values using cubic spline
+                filled_vel_df = filled_vel_df.interpolate(method='spline', order=2, axis=0).fillna(method='bfill').fillna(method='ffill')
+
+                # Save the result
+                pose_data_df[person_id]['filled_acc'] = filled_vel_df
+
+        # Process 'scaled_filled' data
+        if 'scaled_filled_vel' in data:
+            scaled_filled_df = data['scaled_filled_vel']
+            if isinstance(scaled_filled_df, pd.DataFrame) and not scaled_filled_df.empty:
+                # Calculate time derivative for all columns except 'frames'
+                scaled_filled_vel_df = scaled_filled_df.copy()
+                for col in scaled_filled_df.columns:
+                    if col != 'frames':  # Skip the 'frames' column
+                        scaled_filled_vel_df[col] = scaled_filled_df[col].diff() * fps_video
+
+                # Interpolate NaN values using cubic spline
+                scaled_filled_vel_df = scaled_filled_vel_df.interpolate(method='spline', order=2, axis=0).fillna(method='bfill').fillna(method='ffill')
+
+                # Save the result
+                pose_data_df[person_id]['scaled_filled_acc'] = scaled_filled_vel_df
+
+    return pose_data_df
+
 
 def filter_landmarks_by_confidence(pose_data_df, confidence_threshold=0.6):
     """

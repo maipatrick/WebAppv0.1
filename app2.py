@@ -1,7 +1,7 @@
 import streamlit as st
 from video_fun_pm import process_video, filter_landmarks, calculate_com, process_and_overlay_videoStreamlit,process_and_overlay_videoStreamlit_force, process_and_overlay_videoStreamlit_None, process_video_blured, process_video_blured_new, filter_landmarks_new, pose_estimation_rmt_pose, pose_estimation_rmt_pose_new, process_video_multi_person_rstLIB, new_video_for_linear, convert_pose_data_to_meters_multiple
 from d1080_fun_pm import read_1080, filter_1080_data
-from default_processing_pm import pad_df, sync_signals, upsample_signal, sync_signals22, downsample_df, replace_non_finite_valuesDF, calculate_joint_angles, pad_sync_signal, fill_missing_frames, create_labeled_df, detect_first_foot_movement_auto, find_first_peak, find_backwards_turning_point, sync_signals_by_transition, process_pose_data, interpolate_pose_data, calculate_joint_angles, filter_pose_data, process_scores, filter_landmarks_by_confidence
+from default_processing_pm import pad_df, sync_signals, upsample_signal, sync_signals22, downsample_df, replace_non_finite_valuesDF, calculate_joint_angles, pad_sync_signal, fill_missing_frames, create_labeled_df, detect_first_foot_movement_auto, find_first_peak, find_backwards_turning_point, sync_signals_by_transition, process_pose_data, interpolate_pose_data, calculate_joint_angles, filter_pose_data, process_scores, filter_landmarks_by_confidence, calculate_time_derivative, calculate_time_derivative2
 from dforce_fun_pm import read_jump_excel, calculate_com_position, calculate_jump_height
 import pandas as pd
 import tempfile
@@ -52,7 +52,7 @@ with tab1:
         # userinput for subjects body height in meter default is 1.95 ✅
         subject_height = st.number_input("Enter the subject's body height in meters", value=1.95, step=0.01)
         # checkbox to blur faces ❌ TODO
-        blur_facesuser = st.checkbox("Blur faces", value=True)
+        blur_faces_user = st.checkbox("Blur faces", value=True)
         # Dropdown to select the source of the data ✅
         option = st.selectbox(
         "Source of the data",
@@ -122,36 +122,50 @@ with tab1:
                 pose_data_df = process_scores(pose_data, pose_data_df, total_frames_video)
                 # drop the ones that have a low confidence score ✅
                 pose_data_df = filter_landmarks_by_confidence(pose_data_df, confidence_threshold=0.55)
-                # fill the pose data with the closest known variable ✅
+                # fill the pose data with the closest known variable ✅ TODO check again
                 pose_data_df = interpolate_pose_data(pose_data_df)
                 # calculate the joint angles ✅
                 pose_data_df = calculate_joint_angles(pose_data_df)
                 pose_data_df = process_scores(pose_data, pose_data_df, total_frames_video)
                 
-                pose_data_df = filter_pose_data(pose_data_df, 'Angles', fps_video, 5)
+                pose_data_df = filter_pose_data(pose_data_df, 'Angles', fps_video, cut_off_video)
+                pose_data_df = calculate_time_derivative(pose_data_df, fps_video)
+                pose_data_df = calculate_time_derivative2(pose_data_df, fps_video)
+                # filter some data
+                pose_data_df = filter_pose_data(pose_data_df, 'filled_vel', fps_video, cut_off_video)
+                pose_data_df = filter_pose_data(pose_data_df, 'scaled_filled_vel', fps_video, cut_off_video)
+                pose_data_df = filter_pose_data(pose_data_df, 'filled_acc', fps_video, cut_off_video)
+                pose_data_df = filter_pose_data(pose_data_df, 'scaled_filled_acc', fps_video, cut_off_video)
+                pose_data_df = filter_pose_data(pose_data_df, 'filled', fps_video, cut_off_video)
+                pose_data_df = filter_pose_data(pose_data_df, 'scaled_filled', fps_video, cut_off_video)
 
-                df_velocity = pose_data_df['1']['filled'].diff() * fps_video
-                # calculate the velocity in meters/S ✅
-                df_velocity_m = pose_data_df['1']['scaled_filled'].diff() * fps_video
-                # fill with the clostest know variable ❌ TODO not the best solution
-                df_velocity = df_velocity.fillna(method='ffill').fillna(method='bfill')
-                # fill with the clostest know variable in meters ❌ TODO not the best solution
-                df_velocity_m = df_velocity_m.fillna(method='ffill').fillna(method='bfill')
-                #filter the velocity with the butterworth filter ✅
-                df_velocity = filter_landmarks(df_velocity, fps_video, cut_off_video)
-                #filter the velocity with the butterworth filter in meters ✅
-                df_velocity_m = filter_landmarks(df_velocity_m, fps_video, cut_off_video)
-                # calculate the acceleration ✅
-                df_acceleration = df_velocity.diff() * fps_video
-                # calculate the acceleration in meters/S^2 ✅
-                df_acceleration_m = df_velocity_m.diff() * fps_video
-                # fill with the clostest know variable ✅ TODO not the best solution
-                df_acceleration = df_acceleration.fillna(method='ffill').fillna(method='bfill')
-                # fill with the clostest know variable in meters ✅ TODO not the best solution
-                df_acceleration_m = df_acceleration_m.fillna(method='ffill').fillna(method='bfill')
-
-                # ❌ TODO calculate the joint angles 
+                # determine person of interest 
+                POI = '1' # TODO ❌
+                # TODO replace ith with new variables from pose_data_df 
                 
+                
+                # df_velocity = pose_data_df['1']['filled'].diff() * fps_video
+                # # calculate the velocity in meters/S ✅
+                # df_velocity_m = pose_data_df['1']['scaled_filled'].diff() * fps_video
+                # # fill with the clostest know variable ❌ TODO not the best solution
+                # df_velocity = df_velocity.fillna(method='ffill').fillna(method='bfill')
+                # # fill with the clostest know variable in meters ❌ TODO not the best solution
+                # df_velocity_m = df_velocity_m.fillna(method='ffill').fillna(method='bfill')
+                # #filter the velocity with the butterworth filter ✅
+                # df_velocity = filter_landmarks(df_velocity, fps_video, cut_off_video)
+                # #filter the velocity with the butterworth filter in meters ✅
+                # df_velocity_m = filter_landmarks(df_velocity_m, fps_video, cut_off_video)
+                # # calculate the acceleration ✅
+                # df_acceleration = df_velocity.diff() * fps_video
+                # # calculate the acceleration in meters/S^2 ✅
+                # df_acceleration_m = df_velocity_m.diff() * fps_video
+                # # fill with the clostest know variable ✅ TODO not the best solution
+                # df_acceleration = df_acceleration.fillna(method='ffill').fillna(method='bfill')
+                # # fill with the clostest know variable in meters ✅ TODO not the best solution
+                # df_acceleration_m = df_acceleration_m.fillna(method='ffill').fillna(method='bfill')
+                
+
+                # not working  ❌ TODO
                 if option == "Force plate Jumps":
                     com_position = com_position*-1
                     df_landmarks_filtered['com_y'] = df_landmarks_filtered['com_y']-df_landmarks_filtered['com_y'].iloc[0]
@@ -182,20 +196,21 @@ with tab1:
                     #     signal_b = df_1080_filtered['Speed [m/s]']
                     # get signal_a and signal_b in a csv file
                     # TODO NEDDED ? ❌
-                    df_velocity = replace_non_finite_valuesDF(df_velocity)
-                    df_1080_filtered = replace_non_finite_valuesDF(df_1080_filtered)
+                    #df_velocity = replace_non_finite_valuesDF(df_velocity)
+                    #df_1080_filtered = replace_non_finite_valuesDF(df_1080_filtered)
                     #downsample the 1080 data to the video data ✅
+
+                    signal_b = pose_data_df[POI]['scaled_filled_vel_filt']['Hip_x']# df_velocity_m['Hip_x']
+
                     if type_of_1080 == "Linear Sprint":
                         signal_a = downsample_df(df_1080_filtered['Speed [m/s]'], fps_1080, fps_video )
                         # TODO NEDDED ? ❌ 'Distance since start [m]' is different for linear sprint
                         signal_a_distance = downsample_df(df_1080_filtered['Distance [m]'], fps_1080, fps_video )
                         #TODO in only if movement is from left to right and video is in landscape mode ❌
-                        signal_b = df_velocity_m['Hip_x'] #TODO will use hip x 
                     elif type_of_1080 == "CoD m505":
                         signal_a = downsample_df(df_1080_filtered['Speed [m/s]'], fps_1080, fps_video )
                         # TODO NEDDED ? ❌ 'Distance since start [m]' is different for linear sprint
                         signal_a_distance = downsample_df(df_1080_filtered['Distance since start [m]'], fps_1080, fps_video )
-                        signal_b = df_velocity_m['Hip_x'] #TODO will use hip x 
                         signal_b = signal_b*-1
                     
                     #write signal_b to csv
@@ -271,7 +286,7 @@ with tab1:
                     #landmarks_draw = ["LShoulder", "RShoulder", "LElbow", "RElbow", "LWrist", "RWrist", "LHip", "RHip", "LKnee", "RKnee", "LAnkle", "RAnkle", "Hip", "Neck", "RHeel", "LHeel", "RBigToe", "LBigToe"]
                     landmarks_draw = []
                     draw_skeleton_in_video = False
-                    video_data = new_video_for_linear(video_path, velocity_1080_in_video, start_frame, end_frame, pose_data_df['1']['filled'], landmarks_draw, distance_1080_in_video, pose_data_df, blur_facesuser, draw_skeleton_in_video)
+                    video_data = new_video_for_linear(video_path, velocity_1080_in_video, start_frame, end_frame, pose_data_df[POI]['filled'], landmarks_draw, distance_1080_in_video, pose_data_df, blur_faces_user, draw_skeleton_in_video)
                     # video_data=new_video_for_linear(video_path, velocity_1080_in_video, start_frame, end_frame, df_landmarks_filtered, landmarks_draw, distance_1080_in_video)
                     #video_data = process_and_overlay_videoStreamlit(video_path, df_pos_com, sync_a, lag, cut_index, total_time, padded_df_distance)
 

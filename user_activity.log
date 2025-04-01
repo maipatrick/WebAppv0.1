@@ -3951,3 +3951,69 @@ Invoked with: 0.3 - Country: NO
 2025-04-01 18:49:10,179 - Processing time: 418.42 seconds - Country: NO
 2025-04-01 18:49:30,989 - Raw video file uploaded: USE1.mp4 - Country: NO
 2025-04-01 18:49:31,206 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
+2025-04-01 21:22:48,975 - From C:\Users\adpatrick\.conda\envs\streamlit\lib\site-packages\keras\src\backend.py:277: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+
+2025-04-01 21:23:15,397 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:23:18,029 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:23:21,201 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:23:21,392 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
+2025-04-01 21:23:23,066 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:23:23,264 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
+2025-04-01 21:23:35,456 - MobileNetV2 Embedder for Deep Sort initialised
+2025-04-01 21:23:35,457 - - gpu enabled: False
+2025-04-01 21:23:35,457 - - half precision: False
+2025-04-01 21:23:35,457 - - max batch size: 16
+2025-04-01 21:23:35,458 - - expects BGR: True
+2025-04-01 21:23:35,643 - DeepSort Tracker initialised
+2025-04-01 21:23:35,644 - - max age: 30
+2025-04-01 21:23:35,644 - - appearance threshold: 0.2
+2025-04-01 21:23:35,644 - - nms threshold: OFF
+2025-04-01 21:23:35,644 - - max num of appearance features: None
+2025-04-01 21:23:35,645 - - overriding track class : No
+2025-04-01 21:23:35,645 - - today given : No
+2025-04-01 21:23:35,645 - - in-build embedder : Yes
+2025-04-01 21:23:35,645 - - polygon detections : No
+2025-04-01 21:39:31,437 - From C:\Users\adpatrick\.conda\envs\streamlit\lib\site-packages\keras\src\backend.py:277: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+
+2025-04-01 21:39:37,933 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:39:41,176 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:39:47,072 - MobileNetV2 Embedder for Deep Sort initialised
+2025-04-01 21:39:47,072 - - gpu enabled: False
+2025-04-01 21:39:47,072 - - half precision: False
+2025-04-01 21:39:47,073 - - max batch size: 16
+2025-04-01 21:39:47,073 - - expects BGR: True
+2025-04-01 21:39:47,128 - DeepSort Tracker initialised
+2025-04-01 21:39:47,128 - - max age: 30
+2025-04-01 21:39:47,129 - - appearance threshold: 0.2
+2025-04-01 21:39:47,129 - - nms threshold: OFF
+2025-04-01 21:39:47,129 - - max num of appearance features: None
+2025-04-01 21:39:47,129 - - overriding track class : No
+2025-04-01 21:39:47,129 - - today given : No
+2025-04-01 21:39:47,130 - - in-build embedder : Yes
+2025-04-01 21:39:47,130 - - polygon detections : No
+2025-04-01 21:55:57,906 - From C:\Users\adpatrick\.conda\envs\streamlit\lib\site-packages\keras\src\backend.py:277: The name tf.reset_default_graph is deprecated. Please use tf.compat.v1.reset_default_graph instead.
+
+2025-04-01 21:56:09,008 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:56:11,258 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:56:14,733 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:56:14,927 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
+2025-04-01 21:56:16,341 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:56:16,536 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
+2025-04-01 21:56:22,467 - MobileNetV2 Embedder for Deep Sort initialised
+2025-04-01 21:56:22,468 - - gpu enabled: False
+2025-04-01 21:56:22,468 - - half precision: False
+2025-04-01 21:56:22,468 - - max batch size: 16
+2025-04-01 21:56:22,468 - - expects BGR: True
+2025-04-01 21:56:22,520 - DeepSort Tracker initialised
+2025-04-01 21:56:22,521 - - max age: 30
+2025-04-01 21:56:22,521 - - appearance threshold: 0.2
+2025-04-01 21:56:22,521 - - nms threshold: OFF
+2025-04-01 21:56:22,521 - - max num of appearance features: None
+2025-04-01 21:56:22,521 - - overriding track class : No
+2025-04-01 21:56:22,522 - - today given : No
+2025-04-01 21:56:22,522 - - in-build embedder : Yes
+2025-04-01 21:56:22,522 - - polygon detections : No
+2025-04-01 21:59:06,418 - Processed video downloaded! - Country: NO
+2025-04-01 21:59:06,604 - Processing time: 169.87 seconds - Country: NO
+2025-04-01 21:59:15,559 - Raw video file uploaded: USE1.mp4 - Country: NO
+2025-04-01 21:59:15,765 - Raw excel file uploaded: 7. SSL 12 kg.xlsx - Country: NO
